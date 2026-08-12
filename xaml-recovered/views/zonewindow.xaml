@@ -1,0 +1,382 @@
+<Window x:Class="DesktopTool.Views.ZoneWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:converters="clr-namespace:DesktopTool.Converters" xmlns:local="clr-namespace:DesktopTool" WindowStyle="None" AllowsTransparency="True" Background="#00FFFFFF" AllowDrop="True" ShowInTaskbar="False" ResizeMode="NoResize" SnapsToDevicePixels="True" UseLayoutRounding="True" Title="收纳区" MinWidth="200" MinHeight="52" MaxHeight="{x:Static SystemParameters.PrimaryScreenHeight}" xmlns:views="clr-namespace:DesktopTool.Views">
+  <FrameworkElement.Resources>
+    <ResourceDictionary>
+      <converters:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+      <converters:BoolToInverseVisibilityConverter x:Key="BoolToInverseVisibility" />
+      <converters:IsDirectoryToStretchConverter x:Key="IsDirectoryToStretch" />
+      <converters:StringIsEmptyToVisibilityConverter x:Key="StringIsEmptyToVisibilityConverter" />
+      <Style x:Key="ZoneButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="Background" Value="{StaticResource Sb_1A_FFFFFF}" />
+        <Setter Property="Foreground" Value="#FFFFFFFF" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FrameworkElement.Cursor" Value="Hand" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Padding" Value="7,5" />
+        <Setter Property="MinWidth" Value="28" />
+        <Setter Property="MinHeight" Value="26" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="{x:Type Button}">
+              <Border Background="{TemplateBinding Control.Background}" CornerRadius="4" Padding="{TemplateBinding Control.Padding}" MinWidth="{TemplateBinding FrameworkElement.MinWidth}" MinHeight="{TemplateBinding FrameworkElement.MinHeight}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="UIElement.IsMouseOver" Value="True">
+                  <Setter Property="Background" Value="{StaticResource Sb_33_FFFFFF}" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+      <Style x:Key="ZoneMenuButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource ZoneButtonStyle}">
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Margin" Value="0,3,0,0" />
+        <Setter Property="Padding" Value="8,4" />
+      </Style>
+      <Style x:Key="ZoneMenuOptionStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource ZoneButtonStyle}">
+        <Setter Property="MinWidth" Value="40" />
+        <Setter Property="Margin" Value="0,0,4,0" />
+        <Setter Property="Padding" Value="6,4" />
+        <Setter Property="FontSize" Value="12" />
+      </Style>
+      <Style x:Key="ZoneMenuDangerButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource ZoneMenuButtonStyle}">
+        <Setter Property="Foreground" Value="#FF6B6B" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Margin" Value="0,8,0,0" />
+      </Style>
+      <Style x:Key="NarrowScrollBar" TargetType="{x:Type ScrollBar}">
+        <Setter Property="Width" Value="6" />
+        <Setter Property="MinWidth" Value="6" />
+        <Setter Property="Background" Value="#00FFFFFF" />
+        <Setter Property="Foreground" Value="{StaticResource Sb_44_FFFFFF}" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="{x:Type ScrollBar}">
+              <Border Background="{TemplateBinding Control.Background}" CornerRadius="3" Width="{TemplateBinding FrameworkElement.Width}">
+                <Track Name="PART_Track" IsDirectionReversed="True">
+                  <Track.Thumb>
+                    <Thumb>
+                      <Control.Template>
+                        <ControlTemplate TargetType="{x:Type Thumb}">
+                          <Border CornerRadius="3" Margin="1,0" Background="{StaticResource Sb_55_FFFFFF}">
+                            <FrameworkElement.Style>
+                              <Style TargetType="{x:Type Border}">
+                                <Setter Property="Background" Value="{StaticResource Sb_44_FFFFFF}" />
+                                <Style.Triggers>
+                                  <Trigger Property="UIElement.IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource Sb_77_FFFFFF}" />
+                                  </Trigger>
+                                </Style.Triggers>
+                              </Style>
+                            </FrameworkElement.Style>
+                          </Border>
+                        </ControlTemplate>
+                      </Control.Template>
+                    </Thumb>
+                  </Track.Thumb>
+                </Track>
+              </Border>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+    </ResourceDictionary>
+  </FrameworkElement.Resources>
+  <Grid Name="RootGrid" MouseEnter="RootGrid_MouseEnter" MouseLeave="RootGrid_MouseLeave">
+    <Border CornerRadius="8" BorderBrush="{StaticResource Sb_33_FFFFFF}" BorderThickness="1" Background="{Binding PanelColorBrush}" Opacity="{Binding BackgroundOpacity}" />
+    <Canvas Name="DragOverlay" IsHitTestVisible="False" ZIndex="1000" />
+    <Border Name="LoadingOverlay" Visibility="Collapsed" Panel.ZIndex="2000" Background="{StaticResource Sb_99_000000}" CornerRadius="8" MouseEnter="RootGrid_MouseEnter" MouseLeave="RootGrid_MouseLeave">
+      <Border Background="#FF2A2A2A" CornerRadius="14" Padding="36,28" HorizontalAlignment="Center" VerticalAlignment="Center" BorderBrush="#FF3B3B3B" BorderThickness="1">
+        <UIElement.Effect>
+          <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.5" Color="Black" />
+        </UIElement.Effect>
+        <StackPanel>
+          <Border Name="LoadingSpinner" Width="44" Height="44" HorizontalAlignment="Center" CornerRadius="22" Background="#00FFFFFF">
+            <Border Width="38" Height="38" CornerRadius="19" BorderBrush="#FF4A9EFF" BorderThickness="3" RenderTransformOrigin="0.5,0.5">
+              <UIElement.RenderTransform>
+                <RotateTransform Angle="0" />
+              </UIElement.RenderTransform>
+              <FrameworkElement.Triggers>
+                <EventTrigger RoutedEvent="Loaded">
+                  <BeginStoryboard Name="SpinnerStoryboard">
+                    <Storyboard RepeatBehavior="Forever">
+                      <DoubleAnimation Storyboard.TargetProperty="(Border.RenderTransform).(RotateTransform.Angle)" From="0" To="360" Duration="0:0:0.8" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </EventTrigger>
+              </FrameworkElement.Triggers>
+            </Border>
+          </Border>
+          <TextBlock Name="LoadingText" Text="正在收纳文件..." Foreground="#FFDDDDDD" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,16,0,0" />
+          <TextBlock Name="LoadingDetail" Foreground="#FFB0B0C0" FontSize="11" HorizontalAlignment="Center" Margin="0,8,0,0" TextTrimming="CharacterEllipsis" MaxWidth="320" />
+        </StackPanel>
+      </Border>
+    </Border>
+    <Grid Margin="8">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+      <Border Grid.Row="0" Height="36" Background="#00FFFFFF" CornerRadius="6" PreviewMouseLeftButtonDown="Header_PreviewMouseLeftButtonDown">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <TextBlock Grid.Column="0" Text="⋮⋮" Foreground="{StaticResource Sb_66_FFFFFF}" FontSize="16" VerticalAlignment="Center" Margin="6,0,2,0" Cursor="SizeAll" ToolTip="拖拽移动收纳区" MouseLeftButtonDown="Handle_MouseLeftButtonDown" />
+          <TextBox Name="TitleTextBox" Grid.Column="1" FontSize="14" FontWeight="SemiBold" BorderThickness="0" VerticalAlignment="Center" Margin="10,0" InputMethod.IsInputMethodEnabled="True" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsLocked}" PreviewMouseLeftButtonDown="TitleTextBox_PreviewMouseLeftButtonDown" LostKeyboardFocus="TitleTextBox_LostKeyboardFocus" KeyDown="TitleTextBox_KeyDown">
+            <FrameworkElement.Style>
+              <Style TargetType="{x:Type TextBox}" BasedOn="{x:Null}">
+                <Setter Property="Background" Value="#00FFFFFF" />
+                <Setter Property="Foreground" Value="#FFFFFFFF" />
+                <Setter Property="TextBoxBase.CaretBrush" Value="#FFFFFFFF" />
+                <Setter Property="TextBoxBase.SelectionBrush" Value="{StaticResource Sb_66_FFFFFF}" />
+                <Setter Property="FrameworkElement.Cursor" Value="Arrow" />
+                <Style.Triggers>
+                  <MultiTrigger>
+                    <MultiTrigger.Conditions>
+                      <Condition Property="UIElement.IsKeyboardFocusWithin" Value="True" />
+                      <Condition Property="TextBoxBase.IsReadOnly" Value="False" />
+                    </MultiTrigger.Conditions>
+                    <Setter Property="Background" Value="#FFFFFFFF" />
+                    <Setter Property="Foreground" Value="#FF1A1A1A" />
+                    <Setter Property="TextBoxBase.CaretBrush" Value="#FF1A1A1A" />
+                    <Setter Property="TextBoxBase.SelectionBrush" Value="{StaticResource Sb_CC_4A90D9}" />
+                    <Setter Property="Padding" Value="6,2" />
+                    <Setter Property="FrameworkElement.Cursor" Value="IBeam" />
+                  </MultiTrigger>
+                </Style.Triggers>
+              </Style>
+            </FrameworkElement.Style>
+          </TextBox>
+          <StackPanel Name="TitleButtonsPanel" Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,6,0" Opacity="0">
+            <Grid Width="84" Height="26" Margin="0,0,6,0" VerticalAlignment="Center">
+              <Border Background="#1AFFFFFF" CornerRadius="6" BorderBrush="#33FFFFFF" BorderThickness="1" />
+              <TextBox Name="ZoneSearchBox" Background="#00FFFFFF" BorderThickness="0" Foreground="#FFFFFFFF" CaretBrush="#FFFFFFFF" FontSize="12" VerticalContentAlignment="Center" Padding="6,0" Margin="1" InputMethod.IsInputMethodEnabled="True" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" PreviewMouseLeftButtonDown="ZoneSearch_PreviewMouseLeftButtonDown" GotFocus="ZoneSearch_GotFocus" LostKeyboardFocus="ZoneSearch_LostKeyboardFocus" />
+              <TextBlock Text="搜索文件…" IsHitTestVisible="False" Foreground="#99FFFFFF" VerticalAlignment="Center" Margin="8,0,0,0" Visibility="{Binding Text, ElementName=ZoneSearchBox, Converter={StaticResource StringIsEmptyToVisibilityConverter}}" />
+            </Grid>
+            <Button Style="{StaticResource ZoneButtonStyle}" ToolTip="折叠/展开面板" FontSize="11" Margin="0,0,4,0" Command="{Binding ToggleCollapseCommand}" Content="{Binding CollapseLabel}" />
+            <Button Name="MoreButton" Style="{StaticResource ZoneButtonStyle}" ToolTip="更多操作" FontSize="14" Margin="0,0,4,0" Content="☰" Click="MoreButton_Click" />
+            <Popup Name="MorePopup" Placement="Bottom" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Slide" PlacementTarget="{Binding ElementName=MoreButton}" Closed="MorePopup_Closed">
+              <Border Background="#262626" BorderBrush="#444" BorderThickness="1" CornerRadius="6" Padding="6" Width="184">
+                <StackPanel>
+                  <Button Style="{StaticResource ZoneMenuButtonStyle}" Command="{Binding ToggleLockCommand}" Click="MoreMenuItem_Click">
+                    <StackPanel Orientation="Horizontal">
+                      <Path Width="13" Height="13" Stretch="Uniform" Margin="0,0,6,0" Data="{Binding LockIcon}" Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                      <TextBlock Text="{Binding LockMenuLabel}" />
+                    </StackPanel>
+                  </Button>
+                  <TextBlock Text="图标尺寸" Foreground="#BBB" FontSize="11" Margin="2,8,0,4" />
+                  <StackPanel Orientation="Horizontal">
+                    <Button CommandParameter="3" Content="列表" Style="{StaticResource ZoneMenuOptionStyle}" Command="{Binding SetIconSizeCommand}" Background="{Binding IconSizeLevel, ConverterParameter=3, Converter={converters:IntEqualsToBrushConverter}}" Click="MoreMenuItem_Click" />
+                    <Button CommandParameter="0" Content="小" Style="{StaticResource ZoneMenuOptionStyle}" Command="{Binding SetIconSizeCommand}" Background="{Binding IconSizeLevel, ConverterParameter=0, Converter={converters:IntEqualsToBrushConverter}}" Click="MoreMenuItem_Click" />
+                    <Button CommandParameter="1" Content="中" Style="{StaticResource ZoneMenuOptionStyle}" Command="{Binding SetIconSizeCommand}" Background="{Binding IconSizeLevel, ConverterParameter=1, Converter={converters:IntEqualsToBrushConverter}}" Click="MoreMenuItem_Click" />
+                    <Button CommandParameter="2" Content="大" Style="{StaticResource ZoneMenuOptionStyle}" Command="{Binding SetIconSizeCommand}" Background="{Binding IconSizeLevel, ConverterParameter=2, Converter={converters:IntEqualsToBrushConverter}}" Click="MoreMenuItem_Click" />
+                  </StackPanel>
+                  <TextBlock Text="排序方式" Foreground="#BBB" FontSize="11" Margin="2,8,0,4" />
+                  <StackPanel Orientation="Horizontal">
+                    <Button CommandParameter="0" Content="名称" Style="{StaticResource ZoneMenuOptionStyle}" Command="{Binding SetSortModeCommand}" Background="{Binding IconSortMode, ConverterParameter=0, Converter={converters:IntEqualsToBrushConverter}}" Click="MoreMenuItem_Click" />
+                    <Button CommandParameter="1" Content="日期" Style="{StaticResource ZoneMenuOptionStyle}" Command="{Binding SetSortModeCommand}" Background="{Binding IconSortMode, ConverterParameter=1, Converter={converters:IntEqualsToBrushConverter}}" Click="MoreMenuItem_Click" />
+                    <Button CommandParameter="2" Content="类型" Style="{StaticResource ZoneMenuOptionStyle}" Command="{Binding SetSortModeCommand}" Background="{Binding IconSortMode, ConverterParameter=2, Converter={converters:IntEqualsToBrushConverter}}" Click="MoreMenuItem_Click" />
+                    <Button CommandParameter="3" Content="大小" Style="{StaticResource ZoneMenuOptionStyle}" Command="{Binding SetSortModeCommand}" Background="{Binding IconSortMode, ConverterParameter=3, Converter={converters:IntEqualsToBrushConverter}}" Click="MoreMenuItem_Click" />
+                  </StackPanel>
+                  <TextBlock Text="排序方向" Foreground="#BBB" FontSize="11" Margin="2,8,0,4" />
+                  <StackPanel Orientation="Horizontal">
+                    <Button CommandParameter="true" Content="递增" Style="{StaticResource ZoneMenuOptionStyle}" Command="{Binding SetSortDirectionCommand}" Background="{Binding IconSortAscending, ConverterParameter=true, Converter={converters:BoolEqualsToBrushConverter}}" Click="MoreMenuItem_Click" />
+                    <Button CommandParameter="false" Content="递减" Style="{StaticResource ZoneMenuOptionStyle}" Command="{Binding SetSortDirectionCommand}" Background="{Binding IconSortAscending, ConverterParameter=false, Converter={converters:BoolEqualsToBrushConverter}}" Click="MoreMenuItem_Click" />
+                  </StackPanel>
+                  <Separator Margin="0,8,0,0" Background="#444" />
+                  <Button Content="解散收纳区" Style="{StaticResource ZoneMenuDangerButtonStyle}" Command="{Binding DismissZoneCommand}" Click="MoreMenuItem_Click" />
+                </StackPanel>
+              </Border>
+            </Popup>
+            <Button Content="✕" Style="{StaticResource ZoneButtonStyle}" ToolTip="解散收纳区" FontSize="14" Visibility="Collapsed" Command="{Binding DismissZoneCommand}" />
+          </StackPanel>
+        </Grid>
+      </Border>
+      <Border Grid.Row="1" Margin="0,4,0,0" Background="#00FFFFFF" CornerRadius="6" Padding="4,2" Visibility="{Binding TabsVisibility}">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <Button Name="BtnScrollLeft" Grid.Column="0" Content="‹" Style="{StaticResource ZoneButtonStyle}" FontSize="14" Padding="2,0" VerticalAlignment="Center" Margin="0,0,6,0" ToolTip="向左翻页" Visibility="Collapsed" Click="TabScrollLeft_Click" />
+          <ScrollViewer Name="TabScrollViewer" Grid.Column="1" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" CanContentScroll="False" PreviewMouseWheel="TabScrollViewer_PreviewMouseWheel">
+            <ItemsControl Name="TabsItemsControl" ItemsSource="{Binding Groups}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Padding="8,4" Margin="0,0,2,0" CornerRadius="4" Cursor="Arrow" PreviewMouseLeftButtonDown="TabItem_PreviewMouseLeftButtonDown" PreviewMouseMove="TabItem_PreviewMouseMove" PreviewMouseLeftButtonUp="TabItem_PreviewMouseLeftButtonUp">
+                    <FrameworkElement.Style>
+                      <Style TargetType="{x:Type Border}">
+                        <Setter Property="Background" Value="#00FFFFFF" />
+                        <Style.Triggers>
+                          <DataTrigger Value="True" Binding="{Binding IsActive}">
+                            <Setter Property="Background" Value="{StaticResource Sb_1A_FFFFFF}" />
+                          </DataTrigger>
+                        </Style.Triggers>
+                      </Style>
+                    </FrameworkElement.Style>
+                    <FrameworkElement.ContextMenu>
+                      <ContextMenu>
+                        <MenuItem Header="重命名" Click="ContextMenu_RenameGroup" />
+                        <Separator />
+                        <MenuItem Header="删除分组" Click="ContextMenu_DeleteGroup" />
+                      </ContextMenu>
+                    </FrameworkElement.ContextMenu>
+                    <TextBox FontSize="12" BorderThickness="0" VerticalAlignment="Center" IsReadOnly="True" Cursor="Arrow" InputMethod.IsInputMethodEnabled="True" Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" GotKeyboardFocus="TabName_GotKeyboardFocus" LostKeyboardFocus="TabName_LostKeyboardFocus" KeyDown="TabName_KeyDown">
+                      <FrameworkElement.Style>
+                        <Style TargetType="{x:Type TextBox}" BasedOn="{x:Null}">
+                          <Setter Property="Background" Value="#00FFFFFF" />
+                          <Setter Property="Foreground" Value="#FFFFFFFF" />
+                          <Setter Property="TextBoxBase.CaretBrush" Value="#FFFFFFFF" />
+                          <Setter Property="TextBoxBase.SelectionBrush" Value="{StaticResource Sb_66_FFFFFF}" />
+                          <Style.Triggers>
+                            <Trigger Property="TextBoxBase.IsReadOnly" Value="False">
+                              <Setter Property="Background" Value="#FFFFFFFF" />
+                              <Setter Property="Foreground" Value="#FF1A1A1A" />
+                              <Setter Property="TextBoxBase.CaretBrush" Value="#FF1A1A1A" />
+                              <Setter Property="TextBoxBase.SelectionBrush" Value="{StaticResource Sb_CC_4A90D9}" />
+                              <Setter Property="FrameworkElement.Cursor" Value="IBeam" />
+                              <Setter Property="Padding" Value="6,2" />
+                            </Trigger>
+                          </Style.Triggers>
+                        </Style>
+                      </FrameworkElement.Style>
+                    </TextBox>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+          <Button Name="BtnScrollRight" Grid.Column="2" Content="›" Style="{StaticResource ZoneButtonStyle}" FontSize="14" Padding="2,0" VerticalAlignment="Center" Margin="6,0,0,0" ToolTip="向右翻页" Visibility="Collapsed" Click="TabScrollRight_Click" />
+          <Button Grid.Column="3" Content="＋" Style="{StaticResource ZoneButtonStyle}" FontSize="12" Padding="4,2" Margin="4,0,0,0" ToolTip="添加新分组" Command="{Binding AddGroupCommand}" />
+        </Grid>
+      </Border>
+      <Border Grid.Row="2" Margin="0,8,0,0" Background="#00FFFFFF" CornerRadius="6" AllowDrop="True" Visibility="{Binding ContentVisibility}" DragEnter="IconsArea_DragEnter" DragOver="IconsArea_DragOver" Drop="IconsArea_Drop" GiveFeedback="IconsArea_GiveFeedback">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" CanContentScroll="False">
+          <FrameworkElement.Resources>
+            <ResourceDictionary>
+              <Style x:Key="{x:Type ScrollBar}" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource NarrowScrollBar}" />
+            </ResourceDictionary>
+          </FrameworkElement.Resources>
+          <Grid>
+            <ItemsControl Name="IconsItemsControl" ItemsSource="{Binding Icons}" Visibility="{Binding IsListView, Converter={StaticResource BoolToInverseVisibility}}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border CornerRadius="6" Cursor="Arrow" ToolTip="..." Width="{Binding DataContext.IconContainerWidth, RelativeSource={RelativeSource AncestorType=Window}}" Height="{Binding DataContext.IconContainerHeight, RelativeSource={RelativeSource AncestorType=Window}}" Margin="{Binding DataContext.IconSpacingThickness, RelativeSource={RelativeSource AncestorType=Window}}" MouseLeftButtonDown="Icon_MouseLeftButtonDown" MouseMove="Icon_MouseMove" MouseLeftButtonUp="Icon_MouseLeftButtonUp" MouseLeave="Icon_MouseLeave" ToolTipOpening="Icon_ToolTipOpening" ContextMenuOpening="ZoneIconContextMenu_Opening">
+                    <FrameworkElement.Style>
+                      <Style TargetType="{x:Type Border}">
+                        <Setter Property="Background" Value="#00FFFFFF" />
+                        <Style.Triggers>
+                          <Trigger Property="UIElement.IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{StaticResource Sb_30_FFFFFF}" />
+                          </Trigger>
+                        </Style.Triggers>
+                      </Style>
+                    </FrameworkElement.Style>
+                    <FrameworkElement.ContextMenu>
+                      <ContextMenu>
+                        <MenuItem Header="打开" Click="ContextMenu_Open" />
+                        <MenuItem Name="MenuRunAsAdminZone1" Header="以管理员身份运行" Visibility="Collapsed" Click="ContextMenu_RunAsAdmin" />
+                        <MenuItem Header="打开文件所在位置" Click="ContextMenu_OpenFolder" />
+                        <Separator />
+                        <MenuItem Header="重命名" Click="ContextMenu_Rename" />
+                        <MenuItem Header="属性" Click="ContextMenu_Properties" />
+                        <Separator />
+                        <MenuItem Header="复制" Click="ContextMenu_Copy" />
+                        <Separator />
+                        <MenuItem Header="放回桌面" Click="ContextMenu_Remove" />
+                        <MenuItem Header="删除(回收站)" Click="ContextMenu_Recycle" />
+                      </ContextMenu>
+                    </FrameworkElement.ContextMenu>
+                    <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center">
+                      <Border CornerRadius="6" ClipToBounds="True" HorizontalAlignment="Center" UseLayoutRounding="True" Width="{Binding DataContext.IconImageSize, RelativeSource={RelativeSource AncestorType=Window}}" Height="{Binding DataContext.IconImageSize, RelativeSource={RelativeSource AncestorType=Window}}">
+                        <Image SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding IconImage}" Stretch="{Binding IsDirectory, Converter={StaticResource IsDirectoryToStretch}}" />
+                      </Border>
+                      <TextBlock Foreground="#FFFFFFFF" TextAlignment="Center" TextWrapping="Wrap" Margin="0,3,0,0" local:TwoLineTextHelper.MaxLines="2" FontSize="{Binding DataContext.IconFontSize, RelativeSource={RelativeSource AncestorType=Window}}" MaxWidth="{Binding DataContext.IconTextWrapWidth, RelativeSource={RelativeSource AncestorType=Window}}" local:TwoLineTextHelper.FullText="{Binding DisplayName}" />
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <ItemsControl Name="ListItemsControl" ItemsSource="{Binding Icons}" Visibility="{Binding IsListView, Converter={StaticResource BoolToVisibility}}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <VirtualizingStackPanel Orientation="Vertical" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border MinHeight="32" Margin="2,0" CornerRadius="4" Padding="6,1" Cursor="Arrow" ToolTip="..." MouseLeftButtonDown="Icon_MouseLeftButtonDown" MouseMove="Icon_MouseMove" MouseLeftButtonUp="Icon_MouseLeftButtonUp" MouseLeave="Icon_MouseLeave" ToolTipOpening="Icon_ToolTipOpening" ContextMenuOpening="ZoneIconContextMenu_Opening">
+                    <FrameworkElement.Style>
+                      <Style TargetType="{x:Type Border}">
+                        <Setter Property="Background" Value="#00FFFFFF" />
+                        <Style.Triggers>
+                          <Trigger Property="UIElement.IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{StaticResource Sb_30_FFFFFF}" />
+                          </Trigger>
+                        </Style.Triggers>
+                      </Style>
+                    </FrameworkElement.Style>
+                    <FrameworkElement.ContextMenu>
+                      <ContextMenu>
+                        <MenuItem Header="打开" Click="ContextMenu_Open" />
+                        <MenuItem Name="MenuRunAsAdminZone2" Header="以管理员身份运行" Visibility="Collapsed" Click="ContextMenu_RunAsAdmin" />
+                        <MenuItem Header="打开文件所在位置" Click="ContextMenu_OpenFolder" />
+                        <Separator />
+                        <MenuItem Header="重命名" Click="ContextMenu_Rename" />
+                        <MenuItem Header="属性" Click="ContextMenu_Properties" />
+                        <Separator />
+                        <MenuItem Header="复制" Click="ContextMenu_Copy" />
+                        <Separator />
+                        <MenuItem Header="放回桌面" Click="ContextMenu_Remove" />
+                        <MenuItem Header="删除(回收站)" Click="ContextMenu_Recycle" />
+                      </ContextMenu>
+                    </FrameworkElement.ContextMenu>
+                    <Grid>
+                      <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                      </Grid.ColumnDefinitions>
+                      <Border Grid.Column="0" Width="20" Height="20" CornerRadius="2" ClipToBounds="True" VerticalAlignment="Center" Margin="0,0,8,0" UseLayoutRounding="True">
+                        <Image SnapsToDevicePixels="True" RenderOptions.BitmapScalingMode="HighQuality" Source="{Binding IconImage}" Stretch="{Binding IsDirectory, Converter={StaticResource IsDirectoryToStretch}}" />
+                      </Border>
+                      <TextBlock Grid.Column="1" Foreground="#FFFFFFFF" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Text="{Binding DisplayName}" FontSize="{Binding DataContext.IconFontSize, RelativeSource={RelativeSource AncestorType=Window}}" />
+                      <TextBlock Grid.Column="2" Foreground="#FFFFFFFF" VerticalAlignment="Center" Margin="12,0,0,0" Text="{Binding LastWriteTime, StringFormat=yyyy/MM/dd HH:mm}" FontSize="{Binding DataContext.IconFontSize, RelativeSource={RelativeSource AncestorType=Window}}">
+                        <FrameworkElement.Style>
+                          <Style TargetType="{x:Type TextBlock}">
+                            <Style.Triggers>
+                              <DataTrigger Value="True" Binding="{Binding DataContext.IsNarrow, RelativeSource={RelativeSource AncestorType=Window}}">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                              </DataTrigger>
+                            </Style.Triggers>
+                          </Style>
+                        </FrameworkElement.Style>
+                      </TextBlock>
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Grid>
+        </ScrollViewer>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

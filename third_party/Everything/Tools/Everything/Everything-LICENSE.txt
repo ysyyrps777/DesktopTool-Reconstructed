@@ -1,0 +1,29 @@
+Everything SDK (Everything64.dll) 与 Everything 安装程序 (Everything-Setup.exe)
+版权所有 (C) voidtools — https://www.voidtools.com/
+
+【Everything64.dll（SDK 客户端，随本软件分发）】
+本文件以 zlib 风格许可证授权，可自由用于个人与商业用途，并可在注明出处的前提下再分发：
+
+  Copyright (C) voidtools
+  https://www.voidtools.com/
+
+  This software is provided 'as-is', without any express or implied warranty.
+  In no event will the authors be held liable for any damages arising from
+  the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software.
+  2. Altered source versions must be plainly marked as such, and must not
+     be misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+
+  本软件随 DesktopTool 以“未修改的原始二进制”形式再分发。
+
+【Everything-Setup.exe（Everything 引擎安装包，按需由用户本地安装）】
+Everything 应用程序对个人及商业用途均免费，允许再分发未修改的安装包。
+
+完整许可证见：https://www.voidtools.com/

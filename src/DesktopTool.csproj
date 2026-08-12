@@ -1,0 +1,102 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <AssemblyName>DesktopTool</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>True</UseWPF>
+    <UseWindowsForms>True</UseWindowsForms>
+    <UseSystemDrawing>True</UseSystemDrawing>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>12.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <!-- Decompiled code keeps nullable annotations but was not authored with nullable-flow warnings. -->
+    <Nullable>annotations</Nullable>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RootNamespace />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="app_icon.png" />
+    <None Remove="views\todowindow.baml" />
+    <None Remove="views\confirmdialog.baml" />
+    <None Remove="donate_qrcode.png" />
+    <None Remove="images\nav\zones.png" />
+    <None Remove="images\nav\backup.png" />
+    <None Remove="images\nav\mappings.png" />
+    <None Remove="applogo.png" />
+    <None Remove="views\mainwindow.baml" />
+    <None Remove="donate_alipay.png" />
+    <None Remove="images\nav\search.png" />
+    <None Remove="images\nav\toolbox.png" />
+    <None Remove="views\inputdialog.baml" />
+    <None Remove="views\searchwindow.baml" />
+    <None Remove="views\zonewindow.baml" />
+    <None Remove="themes\sharedstyles.baml" />
+    <None Remove="views\progresswindow.baml" />
+    <None Remove="views\desktopsearchwidget.baml" />
+    <None Remove="views\donationwindow.baml" />
+    <None Remove="views\mappingwidget.baml" />
+    <None Remove="images\nav\todos.png" />
+    <None Remove="views\datepickerwindow.baml" />
+    <None Remove="views\recurringtaskwindow.baml" />
+    <None Remove="images\nav\settings.png" />
+    <None Remove="images\nav\filesearch2.png" />
+    <None Remove="app.baml" />
+    <None Remove="themes\semibrushes.baml" />
+    <None Remove="images\nav\about.png" />
+    <EmbeddedResource Include="app_icon.png" LogicalName="app_icon.png" />
+    <EmbeddedResource Include="views\todowindow.baml" LogicalName="views/todowindow.baml" />
+    <EmbeddedResource Include="views\confirmdialog.baml" LogicalName="views/confirmdialog.baml" />
+    <EmbeddedResource Include="donate_qrcode.png" LogicalName="donate_qrcode.png" />
+    <EmbeddedResource Include="images\nav\zones.png" LogicalName="images/nav/zones.png" />
+    <EmbeddedResource Include="images\nav\backup.png" LogicalName="images/nav/backup.png" />
+    <EmbeddedResource Include="images\nav\mappings.png" LogicalName="images/nav/mappings.png" />
+    <EmbeddedResource Include="applogo.png" LogicalName="applogo.png" />
+    <EmbeddedResource Include="views\mainwindow.baml" LogicalName="views/mainwindow.baml" />
+    <EmbeddedResource Include="donate_alipay.png" LogicalName="donate_alipay.png" />
+    <EmbeddedResource Include="images\nav\search.png" LogicalName="images/nav/search.png" />
+    <EmbeddedResource Include="images\nav\toolbox.png" LogicalName="images/nav/toolbox.png" />
+    <EmbeddedResource Include="views\inputdialog.baml" LogicalName="views/inputdialog.baml" />
+    <EmbeddedResource Include="views\searchwindow.baml" LogicalName="views/searchwindow.baml" />
+    <EmbeddedResource Include="views\zonewindow.baml" LogicalName="views/zonewindow.baml" />
+    <EmbeddedResource Include="themes\sharedstyles.baml" LogicalName="themes/sharedstyles.baml" />
+    <EmbeddedResource Include="views\progresswindow.baml" LogicalName="views/progresswindow.baml" />
+    <EmbeddedResource Include="views\desktopsearchwidget.baml" LogicalName="views/desktopsearchwidget.baml" />
+    <EmbeddedResource Include="views\donationwindow.baml" LogicalName="views/donationwindow.baml" />
+    <EmbeddedResource Include="views\mappingwidget.baml" LogicalName="views/mappingwidget.baml" />
+    <EmbeddedResource Include="images\nav\todos.png" LogicalName="images/nav/todos.png" />
+    <EmbeddedResource Include="views\datepickerwindow.baml" LogicalName="views/datepickerwindow.baml" />
+    <EmbeddedResource Include="views\recurringtaskwindow.baml" LogicalName="views/recurringtaskwindow.baml" />
+    <EmbeddedResource Include="images\nav\settings.png" LogicalName="images/nav/settings.png" />
+    <EmbeddedResource Include="images\nav\filesearch2.png" LogicalName="images/nav/filesearch2.png" />
+    <EmbeddedResource Include="app.baml" LogicalName="app.baml" />
+    <EmbeddedResource Include="themes\semibrushes.baml" LogicalName="themes/semibrushes.baml" />
+    <EmbeddedResource Include="images\nav\about.png" LogicalName="images/nav/about.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Use NuGet instead of depending on the privately installed application directory. -->
+    <PackageReference Include="ClosedXML" Version="0.104.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- WPF resolves pack URIs through this single generated resource container. -->
+    <EmbeddedResource Include="..\original-metadata\DesktopTool.g.resources" LogicalName="DesktopTool.g.resources" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Signed voidtools components retained for file-search feature parity. -->
+    <Content Include="..\third_party\Everything\Everything64.dll">
+      <Link>Everything64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\third_party\Everything\Tools\Everything\**\*">
+      <Link>Tools\Everything\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

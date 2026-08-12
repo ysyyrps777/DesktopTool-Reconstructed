@@ -1,0 +1,32 @@
+# Build output
+**/bin/
+**/obj/
+dist/
+
+# Portable runtime data and user state
+**/Data/
+.portable-data-build-backup/
+portable.txt
+
+# Local logs and decompiler/build diagnostics
+*.log
+build-errors-*.txt
+*.tmp
+*.dmp
+
+# IDE and OS files
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
+
+# Large extracted self-contained uninstaller runtime; source audit is retained
+audit/uninstaller-extracted/
+
+# Original private binaries/PDB are audit inputs, not source. The WPF resource
+# container below is the only original metadata file required by the build.
+original-metadata/*
+!original-metadata/DesktopTool.g.resources

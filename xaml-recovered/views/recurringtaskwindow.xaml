@@ -1,0 +1,176 @@
+<Window x:Class="DesktopTool.Views.RecurringTaskWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="循环任务" Width="470" Height="560" ResizeMode="NoResize" WindowStyle="None" Background="#FF1F1F1F" WindowStartupLocation="Manual" ShowInTaskbar="False" Topmost="True" xmlns:views="clr-namespace:DesktopTool.Views;assembly=DesktopTool" Loaded="Window_Loaded">
+  <Border Padding="14" BorderBrush="{StaticResource Sb_33_FFFFFF}" BorderThickness="1">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <Grid Row="0" Margin="0,0,0,8" Background="#00FFFFFF" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+        <TextBlock Text="循环任务" Foreground="#FFFFFFFF" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <Button Content="✕" Style="{StaticResource ZoneButtonStyle}" Width="30" Height="30" HorizontalAlignment="Right" Click="Close_Click" />
+      </Grid>
+      <ListBox Name="LstRecurring" Grid.Row="1" Margin="0,4" Background="#00FFFFFF" BorderThickness="0" Foreground="#FFF3F3F3" FontSize="13" HorizontalContentAlignment="Stretch" ItemContainerStyle="{StaticResource DarkListBoxItemStretchStyle}" ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ItemsSource="{Binding RecurringTasks}">
+        <FrameworkElement.Resources>
+          <ResourceDictionary>
+            <Style x:Key="{x:Type ScrollBar}" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource NarrowScrollBar}" />
+          </ResourceDictionary>
+        </FrameworkElement.Resources>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Background="{StaticResource Sb_18_FFFFFF}" CornerRadius="8" Padding="10,8" Margin="0,4" HorizontalAlignment="Stretch">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="Auto" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                  <TextBlock Foreground="#FFFFFFFF" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Text="{Binding Name}" />
+                  <TextBlock Foreground="{StaticResource Sb_AA_DDDDDD}" FontSize="11" Margin="0,2,0,0" Text="{Binding RecurrenceSummary}" />
+                </StackPanel>
+                <CheckBox Grid.Column="1" Content="启用" Style="{StaticResource DarkCheckBoxStyle}" VerticalAlignment="Center" Margin="10,0" IsChecked="{Binding Enabled, Mode=TwoWay}" Checked="RecEnabled_Changed" Unchecked="RecEnabled_Changed" />
+                <Button Grid.Column="2" Content="编辑" Style="{StaticResource ZoneButtonStyle}" Width="56" Height="28" Margin="4,0" Click="EditRecurring_Click" />
+                <Button Grid.Column="3" Content="删除" Style="{StaticResource ZoneButtonStyle}" Width="56" Height="28" Margin="4,0" Click="DeleteRecurring_Click" />
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ListBox>
+      <Button Name="AddRecurring" Grid.Row="2" Content="＋ 新增循环任务" Style="{StaticResource ZoneButtonStyle}" Height="34" Margin="0,8,0,0" Click="AddRecurring_Click" />
+      <Border Name="EditorPanel" Grid.Row="1" Grid.RowSpan="2" Visibility="Collapsed" Panel.ZIndex="10" Background="#FF262626" CornerRadius="10">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="14">
+          <FrameworkElement.Resources>
+            <ResourceDictionary>
+              <Style x:Key="{x:Type ScrollBar}" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource NarrowScrollBar}" />
+            </ResourceDictionary>
+          </FrameworkElement.Resources>
+          <StackPanel>
+            <TextBlock Text="循环任务设置" Foreground="#FFFFFFFF" FontSize="15" FontWeight="SemiBold" Margin="0,0,0,12" />
+            <TextBlock Text="任务名称" Foreground="{StaticResource Sb_AA_DDDDDD}" FontSize="12" Margin="0,0,0,4" />
+            <TextBox Name="TxtName" Height="34" Foreground="#FFFFFFFF" Background="{StaticResource Sb_33_FFFFFF}" BorderThickness="0" Padding="8,4" VerticalContentAlignment="Center" FontSize="13" />
+            <TextBlock Text="循环方式" Foreground="{StaticResource Sb_AA_DDDDDD}" FontSize="12" Margin="0,14,0,6" />
+            <Grid Name="RecurrenceTabs">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+              </Grid.ColumnDefinitions>
+              <RadioButton Name="RbDaily" Grid.Column="0" Content="每天" GroupName="RecNew" Style="{StaticResource DarkTabRadioStyle}" Checked="RecurrenceRadio_Changed" />
+              <RadioButton Name="RbWeekly" Grid.Column="1" Content="每周" GroupName="RecNew" Style="{StaticResource DarkTabRadioStyle}" Checked="RecurrenceRadio_Changed" />
+              <RadioButton Name="RbMonthly" Grid.Column="2" Content="每月" GroupName="RecNew" Style="{StaticResource DarkTabRadioStyle}" Checked="RecurrenceRadio_Changed" />
+              <RadioButton Name="RbYearly" Grid.Column="3" Content="每年" GroupName="RecNew" Style="{StaticResource DarkTabRadioStyle}" Checked="RecurrenceRadio_Changed" />
+            </Grid>
+            <StackPanel Name="DailyPanel" Margin="0,14,0,0">
+              <TextBlock Text="循环时间" Foreground="{StaticResource Sb_AA_DDDDDD}" FontSize="12" Margin="0,0,0,6" />
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,10">
+                <TextBox Name="TxtDailyTime" Width="130" Height="36" Foreground="#FFFFFFFF" FontSize="16" Background="{StaticResource Sb_33_FFFFFF}" BorderThickness="0" Padding="10,2" VerticalContentAlignment="Center" Text="09:00" ToolTip="格式 时:分，例如 09:30，可直接键盘输入" TextChanged="TxtDailyTime_TextChanged" />
+                <TextBlock Text="（时:分，可直接输入）" Foreground="{StaticResource Sb_AA_DDDDDD}" FontSize="11" VerticalAlignment="Center" Margin="10,0,0,0" />
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <ListBox Name="LstRecDailyHour" Width="92" Height="160" Style="{StaticResource DarkListBoxStyle}" ItemContainerStyle="{StaticResource DarkListBoxItemStyle}" SelectionChanged="LstRecDailyHour_SelectionChanged">
+                  <FrameworkElement.Resources>
+                    <ResourceDictionary>
+                      <Style x:Key="{x:Type ScrollBar}" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource NarrowScrollBar}" />
+                    </ResourceDictionary>
+                  </FrameworkElement.Resources>
+                </ListBox>
+                <TextBlock Text="时" Foreground="{StaticResource Sb_AA_DDDDDD}" FontSize="13" VerticalAlignment="Center" Margin="6,0" />
+                <ListBox Name="LstRecDailyMinute" Width="92" Height="160" Style="{StaticResource DarkListBoxStyle}" ItemContainerStyle="{StaticResource DarkListBoxItemStyle}" SelectionChanged="LstRecDailyMinute_SelectionChanged">
+                  <FrameworkElement.Resources>
+                    <ResourceDictionary>
+                      <Style x:Key="{x:Type ScrollBar}" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource NarrowScrollBar}" />
+                    </ResourceDictionary>
+                  </FrameworkElement.Resources>
+                </ListBox>
+                <TextBlock Text="分" Foreground="{StaticResource Sb_AA_DDDDDD}" FontSize="13" VerticalAlignment="Center" Margin="6,0,0,0" />
+              </StackPanel>
+            </StackPanel>
+            <StackPanel Name="WeeklyPanel" Margin="0,14,0,0" Visibility="Collapsed">
+              <TextBlock Text="选择星期" Foreground="{StaticResource Sb_AA_DDDDDD}" FontSize="12" Margin="0,0,0,6" />
+              <ListBox Name="LstWeekday" Width="220" Height="176" Style="{StaticResource DarkListBoxStyle}" ItemContainerStyle="{StaticResource DarkListBoxItemStyle}">
+                <FrameworkElement.Resources>
+                  <ResourceDictionary>
+                    <Style x:Key="{x:Type ScrollBar}" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource NarrowScrollBar}" />
+                  </ResourceDictionary>
+                </FrameworkElement.Resources>
+              </ListBox>
+            </StackPanel>
+            <StackPanel Name="MonthlyPanel" Margin="0,14,0,0" Visibility="Collapsed">
+              <TextBlock Text="选择每月几号" Foreground="{StaticResource Sb_AA_DDDDDD}" FontSize="12" Margin="0,0,0,6" />
+              <ListBox Name="LstMonthDay" Width="220" Height="176" Style="{StaticResource DarkListBoxStyle}" ItemContainerStyle="{StaticResource DarkListBoxItemStyle}">
+                <FrameworkElement.Resources>
+                  <ResourceDictionary>
+                    <Style x:Key="{x:Type ScrollBar}" TargetType="{x:Type ScrollBar}" BasedOn="{StaticResource NarrowScrollBar}" />
+                  </ResourceDictionary>
+                </FrameworkElement.Resources>
+              </ListBox>
+            </StackPanel>
+            <StackPanel Name="YearlyPanel" Margin="0,14,0,0" Visibility="Collapsed">
+              <TextBlock Text="选择日期（每年到达该月日触发）" Foreground="{StaticResource Sb_AA_DDDDDD}" FontSize="12" Margin="0,0,0,6" />
+              <Button Name="BtnYearlyDate" Width="220" Height="34" Style="{StaticResource ZoneButtonStyle}" HorizontalAlignment="Left" FontSize="13" ToolTip="点击选择日期" Click="YearlyDate_Click" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+              <Button Content="确定" Style="{StaticResource ZoneButtonStyle}" Width="80" Height="32" Margin="4" Click="Editor_OK" />
+              <Button Content="取消" Style="{StaticResource ZoneButtonStyle}" Width="80" Height="32" Margin="4" Click="Editor_Cancel" />
+            </StackPanel>
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+      <Border Name="DatePickerOverlay" Grid.Row="0" Grid.RowSpan="3" Background="{StaticResource Sb_88_000000}" Visibility="Collapsed" Panel.ZIndex="1000" MouseLeftButtonDown="DatePickerOverlay_BackgroundClick">
+        <Border Name="DatePickerPanel" Background="#FF2C2C34" BorderBrush="#FF555565" BorderThickness="1" CornerRadius="8" Padding="4,2,4,6" HorizontalAlignment="Center" VerticalAlignment="Center" MinWidth="280" MouseLeftButtonDown="DatePickerPanel_PreventClose">
+          <StackPanel>
+            <Border Height="36" CornerRadius="6,6,0,0">
+              <Grid>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="📅 选择日期" Foreground="#FFFFFFFF" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center" Margin="12,0,10,0" />
+                <Button Grid.Column="1" Content="✕" Width="28" Height="28" FontSize="13" Foreground="#FFCCCCCC" Background="#00FFFFFF" BorderThickness="0" Cursor="Hand" Margin="0,0,4,0" Click="DatePickerCloseButton_Click">
+                  <Control.Template>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                      <Border Background="{TemplateBinding Control.Background}" CornerRadius="4" MinWidth="28" MinHeight="28">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+                      <ControlTemplate.Triggers>
+                        <Trigger Property="UIElement.IsMouseOver" Value="True">
+                          <Setter Value="{StaticResource Sb_33_FFFFFF}" Property="Control.Background" />
+                        </Trigger>
+                      </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                  </Control.Template>
+                </Button>
+              </Grid>
+            </Border>
+            <StackPanel Margin="0,4,0,0">
+              <Grid Margin="4,0">
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="36" />
+                  <ColumnDefinition Width="*" />
+                  <ColumnDefinition Width="36" />
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Content="◀" Style="{StaticResource ZoneButtonStyle}" Click="DatePicker_PrevMonth" />
+                <TextBlock Name="TxtMonthYear" Grid.Column="1" Foreground="#FFFFFFFF" FontSize="14" FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <Button Grid.Column="2" Content="▶" Style="{StaticResource ZoneButtonStyle}" Click="DatePicker_NextMonth" />
+              </Grid>
+              <UniformGrid Rows="1" Columns="7" Margin="8,4,8,0">
+                <TextBlock Text="日" Foreground="{StaticResource Sb_88_FFFFFF}" FontSize="11" HorizontalAlignment="Center" Width="28" />
+                <TextBlock Text="一" Foreground="{StaticResource Sb_88_FFFFFF}" FontSize="11" HorizontalAlignment="Center" Width="28" />
+                <TextBlock Text="二" Foreground="{StaticResource Sb_88_FFFFFF}" FontSize="11" HorizontalAlignment="Center" Width="28" />
+                <TextBlock Text="三" Foreground="{StaticResource Sb_88_FFFFFF}" FontSize="11" HorizontalAlignment="Center" Width="28" />
+                <TextBlock Text="四" Foreground="{StaticResource Sb_88_FFFFFF}" FontSize="11" HorizontalAlignment="Center" Width="28" />
+                <TextBlock Text="五" Foreground="{StaticResource Sb_88_FFFFFF}" FontSize="11" HorizontalAlignment="Center" Width="28" />
+                <TextBlock Text="六" Foreground="{StaticResource Sb_88_FFFFFF}" FontSize="11" HorizontalAlignment="Center" Width="28" />
+              </UniformGrid>
+              <UniformGrid Name="DayGrid" Rows="6" Columns="7" Margin="8,2,8,4" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </Border>
+    </Grid>
+  </Border>
+</Window>

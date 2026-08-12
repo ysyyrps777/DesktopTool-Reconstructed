@@ -1,0 +1,52 @@
+<Window x:Class="DesktopTool.Views.ProgressWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:DesktopTool.Views" WindowStyle="None" AllowsTransparency="True" Background="#EE1E1E2E" ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True" WindowStartupLocation="CenterOwner" Width="380" Height="140" BorderBrush="#FF444466" BorderThickness="1">
+  <FrameworkElement.Resources>
+    <ResourceDictionary>
+      <local:GreaterThanZeroConverter x:Key="GreaterThanZeroConverter" />
+      <local:ZeroToVisibleConverter x:Key="ZeroToVisibleConverter" />
+      <Style x:Key="PromptText" TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="#FFE0E0F0" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="TextWrapping" Value="WrapWithOverflow" />
+        <Setter Property="Margin" Value="0,0,0,6" />
+      </Style>
+      <Style x:Key="SubText" TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="#FFAAAACC" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontFamily" Value="Microsoft YaHei UI" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      </Style>
+    </ResourceDictionary>
+  </FrameworkElement.Resources>
+  <Border Background="#EE1E1E2E" CornerRadius="8" Padding="20,16">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <TextBlock Grid.Row="0" Style="{StaticResource PromptText}" Text="{Binding Title, FallbackValue=正在处理文件...}" />
+      <Grid Row="1" Margin="0,8,0,0" Visibility="{Binding Path=ProgressMax, Converter={StaticResource GreaterThanZeroConverter}, FallbackValue=Collapsed}">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto" />
+          <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <ProgressBar Grid.Row="0" Minimum="0" Height="6" Margin="0,0,0,4" Foreground="#FF6677CC" Background="#FF333355" BorderThickness="0" Maximum="{Binding ProgressMax}" Value="{Binding ProgressValue}" />
+        <TextBlock Grid.Row="1" Foreground="#FFAAAACC" FontSize="11" HorizontalAlignment="Right" Margin="0,0,0,4" Text="{Binding ProgressText, FallbackValue=}" />
+      </Grid>
+      <ProgressBar Grid.Row="2" IsIndeterminate="True" Height="6" Margin="0,8,0,4" Foreground="#FF6677CC" Background="#FF333355" BorderThickness="0">
+        <UIElement.Visibility>
+          <Binding Path="ProgressMax" FallbackValue="Visible">
+            <Binding.Converter>
+              <local:ZeroToVisibleConverter />
+            </Binding.Converter>
+          </Binding>
+        </UIElement.Visibility>
+      </ProgressBar>
+      <TextBlock Grid.Row="3" Style="{StaticResource SubText}" MaxWidth="340" Text="{Binding CurrentFile, FallbackValue=}" />
+      <TextBlock Grid.Row="4" Text="请勿关闭程序，大文件移动可能需要一些时间" Foreground="#FF8888AA" FontSize="11" Margin="0,6,0,0" />
+    </Grid>
+  </Border>
+</Window>

@@ -1,0 +1,383 @@
+<Window x:Class="DesktopTool.Views.SearchWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:DesktopTool.Views" Title="文件搜索" Width="760" Height="540" MinWidth="620" MinHeight="420" ResizeMode="CanResize" WindowStartupLocation="CenterScreen" WindowStyle="None" AllowsTransparency="True" Background="#00FFFFFF" SizeChanged="SearchWindow_SizeChanged">
+  <FrameworkElement.Resources>
+    <ResourceDictionary>
+      <local:FileIconConverter x:Key="FileIconConverter" />
+      <SolidColorBrush x:Key="AccentBrush" Color="#FF4A90D9" />
+      <SolidColorBrush x:Key="AccentHoverBrush" Color="#FF5BA0E9" />
+      <SolidColorBrush x:Key="BgPrimaryBrush" Color="#FF1E1E28" />
+      <SolidColorBrush x:Key="BgSecondaryBrush" Color="#FF16161F" />
+      <SolidColorBrush x:Key="BgTertiaryBrush" Color="#FF252536" />
+      <SolidColorBrush x:Key="BgHoverBrush" Color="#FF2A2A3D" />
+      <SolidColorBrush x:Key="BorderBrush" Color="#FF2E2E42" />
+      <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFE8E8F0" />
+      <SolidColorBrush x:Key="TextSecondaryBrush" Color="#FF9898B0" />
+      <SolidColorBrush x:Key="TextMutedBrush" Color="#FF646478" />
+      <Style x:Key="SearchTitleButton" TargetType="{x:Type Button}">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="{StaticResource BgTertiaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="14,6" />
+        <Setter Property="FrameworkElement.Cursor" Value="Hand" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="{x:Type Button}">
+              <Border Name="b" Background="{TemplateBinding Control.Background}" BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="{TemplateBinding Control.BorderThickness}" CornerRadius="6">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" Margin="{TemplateBinding Control.Padding}" />
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="UIElement.IsMouseOver" Value="True">
+                  <Setter TargetName="b" Property="Border.Background" Value="#FF33415A" />
+                  <Setter TargetName="b" Property="Border.BorderBrush" Value="{StaticResource AccentBrush}" />
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                  <Setter TargetName="b" Property="Border.Background" Value="{StaticResource AccentBrush}" />
+                  <Setter TargetName="b" Property="Border.BorderBrush" Value="{StaticResource AccentHoverBrush}" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+      <Style x:Key="{x:Type ScrollBar}" TargetType="{x:Type ScrollBar}">
+        <Setter Property="Width" Value="8" />
+        <Setter Property="Background" Value="#00FFFFFF" />
+      </Style>
+      <Style x:Key="ScopeDropToggle" TargetType="{x:Type ToggleButton}">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="{StaticResource BgTertiaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FrameworkElement.Cursor" Value="Hand" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="{x:Type ToggleButton}">
+              <Border Name="b" Background="{TemplateBinding Control.Background}" BorderBrush="{TemplateBinding Control.BorderBrush}" BorderThickness="1" CornerRadius="6">
+                <Grid Margin="10,0,8,0">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                  </Grid.ColumnDefinitions>
+                  <ContentPresenter Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Center" />
+                  <Path Grid.Column="1" Data="M0,0 L4,4 L8,0" StrokeThickness="1.5" VerticalAlignment="Center" Margin="6,1,0,0" Stroke="{StaticResource TextSecondaryBrush}" />
+                </Grid>
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="UIElement.IsMouseOver" Value="True">
+                  <Setter TargetName="b" Property="Border.Background" Value="{StaticResource BgHoverBrush}" />
+                  <Setter TargetName="b" Property="Border.BorderBrush" Value="{StaticResource AccentBrush}" />
+                </Trigger>
+                <Trigger Property="ToggleButton.IsChecked" Value="True">
+                  <Setter TargetName="b" Property="Border.BorderBrush" Value="{StaticResource AccentBrush}" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+      <Style x:Key="ScopeDropItem" TargetType="{x:Type Button}">
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="#00FFFFFF" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FrameworkElement.Cursor" Value="Hand" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="{x:Type Button}">
+              <Border Name="b" Background="{TemplateBinding Control.Background}" CornerRadius="4" Padding="10,6">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="UIElement.IsMouseOver" Value="True">
+                  <Setter TargetName="b" Property="Border.Background" Value="{StaticResource AccentBrush}" />
+                  <Setter Property="Foreground" Value="#FFFFFFFF" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+      <Style x:Key="CaptionButton" TargetType="{x:Type Button}">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="FrameworkElement.Cursor" Value="Hand" />
+        <Setter Property="Background" Value="#28FFFFFF" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="{x:Type Button}">
+              <Border Name="b" Background="{TemplateBinding Control.Background}" CornerRadius="6">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="UIElement.IsMouseOver" Value="True">
+                  <Setter TargetName="b" Property="Border.Background" Value="#44FFFFFF" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+      <Style x:Key="FilterTabButton" TargetType="{x:Type RadioButton}">
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="Background" Value="#00FFFFFF" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="14,6" />
+        <Setter Property="FrameworkElement.Cursor" Value="Hand" />
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="{x:Type RadioButton}">
+              <Border Name="b" Background="{TemplateBinding Control.Background}" CornerRadius="14" Padding="{TemplateBinding Control.Padding}">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="UIElement.IsMouseOver" Value="True">
+                  <Setter TargetName="b" Property="Border.Background" Value="{StaticResource BgHoverBrush}" />
+                </Trigger>
+                <Trigger Property="ToggleButton.IsChecked" Value="True">
+                  <Setter TargetName="b" Property="Border.Background" Value="{StaticResource AccentBrush}" />
+                  <Setter Property="Foreground" Value="#FFFFFFFF" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+    </ResourceDictionary>
+  </FrameworkElement.Resources>
+  <Border Name="RootBorder" Background="{StaticResource BgPrimaryBrush}" CornerRadius="12" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+        <RowDefinition Height="Auto" />
+      </Grid.RowDefinitions>
+      <Grid Row="0" Height="44" MouseLeftButtonDown="TitleBar_MouseLeftButtonDown">
+        <TextBlock Text="🔍  文件搜索" Foreground="{StaticResource TextPrimaryBrush}" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" Margin="16,0,0,0" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0">
+          <ToggleButton Name="DesktopWidgetToggle" Margin="0,0,14,0" VerticalAlignment="Center" Checked="DesktopWidgetToggle_Checked" Unchecked="DesktopWidgetToggle_Unchecked">
+            <Control.Template>
+              <ControlTemplate TargetType="{x:Type ToggleButton}">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                  <Grid Width="36" Height="18" Margin="0,0,6,0" VerticalAlignment="Center">
+                    <Border Name="Track" Background="#33FFFFFF" CornerRadius="9" />
+                    <Ellipse Name="Knob" Fill="#FFFFFFFF" Width="14" Height="14" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="2,0,0,0" />
+                  </Grid>
+                  <TextBlock Text="桌面组件" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center" />
+                </StackPanel>
+                <ControlTemplate.Triggers>
+                  <Trigger Property="ToggleButton.IsChecked" Value="True">
+                    <Setter TargetName="Track" Value="{StaticResource AccentBrush}" Property="Border.Background" />
+                    <Setter TargetName="Knob" Property="FrameworkElement.HorizontalAlignment" Value="Right" />
+                    <Setter TargetName="Knob" Property="FrameworkElement.Margin" Value="0,0,2,0" />
+                  </Trigger>
+                </ControlTemplate.Triggers>
+              </ControlTemplate>
+            </Control.Template>
+          </ToggleButton>
+          <TextBlock Text="快捷键" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0" />
+          <TextBlock Name="HotkeyDisplay" Foreground="{StaticResource AccentBrush}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0" />
+          <Button Name="BtnChangeHotkey" Content="修改" Margin="0,0,6,0" Style="{StaticResource SearchTitleButton}" VerticalAlignment="Center" Click="BtnChangeHotkey_Click" />
+          <Button Name="BtnResetHotkey" Content="重置" Margin="0,0,8,0" Style="{StaticResource SearchTitleButton}" VerticalAlignment="Center" Click="BtnResetHotkey_Click" />
+          <Button Style="{StaticResource CaptionButton}" Margin="0,0,6,0" ToolTip="最小化" Click="MinimizeButton_Click">
+            <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" />
+          </Button>
+          <Button Style="{StaticResource CaptionButton}" Margin="0,0,6,0" ToolTip="最大化" Click="MaximizeButton_Click">
+            <TextBlock Name="MaxRestoreGlyph" Text="" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" />
+          </Button>
+          <Button Style="{StaticResource CaptionButton}" ToolTip="关闭" Click="CloseButton_Click">
+            <Control.Template>
+              <ControlTemplate TargetType="{x:Type Button}">
+                <Border Name="b" Background="#28FFFFFF" CornerRadius="6">
+                  <TextBlock Text="" FontFamily="Segoe MDL2 Assets" FontSize="10" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <ControlTemplate.Triggers>
+                  <Trigger Property="UIElement.IsMouseOver" Value="True">
+                    <Setter TargetName="b" Property="Border.Background" Value="#CCE81123" />
+                  </Trigger>
+                </ControlTemplate.Triggers>
+              </ControlTemplate>
+            </Control.Template>
+          </Button>
+        </StackPanel>
+      </Grid>
+      <Grid Row="1" Margin="16,4,16,6">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="*" />
+          <ColumnDefinition Width="Auto" />
+          <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <Border Grid.Column="0" Background="{StaticResource BgTertiaryBrush}" CornerRadius="6" Padding="10,0">
+          <TextBox Name="SearchBox" BorderThickness="0" Background="#00FFFFFF" Foreground="{StaticResource TextPrimaryBrush}" CaretBrush="#FFFFFFFF" FontSize="13" VerticalContentAlignment="Center" Height="32" KeyDown="SearchBox_KeyDown" TextChanged="SearchBox_TextChanged" />
+        </Border>
+        <Button Name="SearchButton" Grid.Column="1" Width="76" Height="32" Margin="8,0,0,0" Foreground="#FFFFFFFF" FontSize="13" FontWeight="SemiBold" Cursor="Hand" IsEnabled="True" Click="SearchButton_Click">
+          <Control.Template>
+            <ControlTemplate TargetType="{x:Type Button}">
+              <Border Name="b" Background="{StaticResource AccentBrush}" CornerRadius="6">
+                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="UIElement.IsMouseOver" Value="True">
+                  <Setter TargetName="b" Value="{StaticResource AccentHoverBrush}" Property="Border.Background" />
+                </Trigger>
+                <Trigger Property="UIElement.IsEnabled" Value="False">
+                  <Setter TargetName="b" Property="Border.Background" Value="#FF3A3A4A" />
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Control.Template>
+          <Grid>
+            <TextBlock Name="SearchBtnLabel" Text="搜索" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <StackPanel Name="SearchBtnLoading" Orientation="Horizontal" Visibility="Collapsed" HorizontalAlignment="Center" VerticalAlignment="Center">
+              <Canvas Width="14" Height="14" Margin="0,0,6,0">
+                <UIElement.RenderTransform>
+                  <RotateTransform x:Name="SearchSpin" CenterX="7" CenterY="7" />
+                </UIElement.RenderTransform>
+                <Path Data="M7,1 A6,6 0 1 1 1,7" Stroke="#FFFFFFFF" StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+              </Canvas>
+              <TextBlock Text="启动中" Foreground="#FFFFFFFF" />
+            </StackPanel>
+          </Grid>
+        </Button>
+        <Grid Column="2" Margin="8,0,0,0">
+          <ToggleButton Name="ScopeToggle" Width="88" Height="32" Style="{StaticResource ScopeDropToggle}" Content="全盘" />
+          <Popup Name="ScopePopup" Placement="Bottom" VerticalOffset="4" StaysOpen="False" AllowsTransparency="True" PlacementTarget="{Binding ElementName=ScopeToggle}" IsOpen="{Binding IsChecked, ElementName=ScopeToggle, Mode=TwoWay}">
+            <Border Background="{StaticResource BgTertiaryBrush}" BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="6" Padding="4" MinWidth="88">
+              <ScrollViewer VerticalScrollBarVisibility="Auto" MaxHeight="280">
+                <StackPanel Name="ScopeItemsPanel" />
+              </ScrollViewer>
+            </Border>
+          </Popup>
+        </Grid>
+      </Grid>
+      <Border Grid.Row="2" Margin="16,0,16,8">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+          <StackPanel Orientation="Horizontal">
+            <RadioButton Name="FilterAll" Content="全部" Tag="all" GroupName="FileKind" Style="{StaticResource FilterTabButton}" IsChecked="True" Checked="FilterTab_Checked" />
+            <RadioButton Name="FilterDoc" Content="文档" Tag="doc" GroupName="FileKind" Style="{StaticResource FilterTabButton}" Margin="6,0,0,0" Checked="FilterTab_Checked" />
+            <RadioButton Name="FilterFolder" Content="文件夹" Tag="folder" GroupName="FileKind" Style="{StaticResource FilterTabButton}" Margin="6,0,0,0" Checked="FilterTab_Checked" />
+            <RadioButton Name="FilterPicture" Content="图片" Tag="picture" GroupName="FileKind" Style="{StaticResource FilterTabButton}" Margin="6,0,0,0" Checked="FilterTab_Checked" />
+            <RadioButton Name="FilterVideo" Content="视频" Tag="video" GroupName="FileKind" Style="{StaticResource FilterTabButton}" Margin="6,0,0,0" Checked="FilterTab_Checked" />
+            <RadioButton Name="FilterAudio" Content="音频" Tag="audio" GroupName="FileKind" Style="{StaticResource FilterTabButton}" Margin="6,0,0,0" Checked="FilterTab_Checked" />
+            <RadioButton Name="FilterExe" Content="可执行文件" Tag="exe" GroupName="FileKind" Style="{StaticResource FilterTabButton}" Margin="6,0,0,0" Checked="FilterTab_Checked" />
+            <RadioButton Name="FilterZip" Content="压缩文件" Tag="zip" GroupName="FileKind" Style="{StaticResource FilterTabButton}" Margin="6,0,0,0" Checked="FilterTab_Checked" />
+          </StackPanel>
+        </ScrollViewer>
+      </Border>
+      <Border Name="InstallBanner" Grid.Row="3" Margin="16,0,16,10" Background="#FF3A2A1A" CornerRadius="8" Padding="14,12" Visibility="Collapsed">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <StackPanel Grid.Column="0" VerticalAlignment="Center">
+            <TextBlock Name="BannerTitle" Text="需要安装文件搜索服务组件" Foreground="#FFE8A857" FontSize="13" FontWeight="SemiBold" />
+            <TextBlock Name="BannerDesc" Text="全盘极速搜索依赖后台索引服务，点击右侧按钮完成安装。若弹出授权面板，请选择「使用管理员权限运行」。" Foreground="{StaticResource TextSecondaryBrush}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,0" />
+          </StackPanel>
+          <Button Name="InstallButton" Grid.Column="1" Content="安装组件" Width="96" Height="36" Margin="12,0,0,0" VerticalAlignment="Center" Foreground="#FFFFFFFF" FontSize="13" FontWeight="SemiBold" Cursor="Hand" Click="InstallButton_Click">
+            <Control.Template>
+              <ControlTemplate TargetType="{x:Type Button}">
+                <Border Name="b" Background="#FFE88D3C" CornerRadius="8">
+                  <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <ControlTemplate.Triggers>
+                  <Trigger Property="UIElement.IsMouseOver" Value="True">
+                    <Setter TargetName="b" Property="Border.Background" Value="#FFF0913D" />
+                  </Trigger>
+                  <Trigger Property="UIElement.IsEnabled" Value="False">
+                    <Setter TargetName="b" Property="Border.Background" Value="#FF55555F" />
+                  </Trigger>
+                </ControlTemplate.Triggers>
+              </ControlTemplate>
+            </Control.Template>
+          </Button>
+        </Grid>
+      </Border>
+      <ListView Name="ResultList" Grid.Row="4" Margin="16,0,16,0" Background="#00FFFFFF" BorderThickness="0" Foreground="{StaticResource TextPrimaryBrush}" SelectionMode="Extended" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AllowDrop="False" MouseDoubleClick="ResultList_MouseDoubleClick" PreviewMouseLeftButtonDown="ResultList_PreviewMouseLeftButtonDown" PreviewMouseLeftButtonUp="ResultList_PreviewMouseLeftButtonUp" MouseMove="ResultList_MouseMove" KeyDown="ResultList_KeyDown" ContextMenuOpening="ResultList_ContextMenuOpening">
+        <FrameworkElement.Resources>
+          <ResourceDictionary>
+            <Style x:Key="{x:Type GridViewColumnHeader}" TargetType="{x:Type GridViewColumnHeader}">
+              <Setter Property="Background" Value="{StaticResource BgSecondaryBrush}" />
+              <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+              <Setter Property="FontSize" Value="12" />
+              <Setter Property="Height" Value="30" />
+              <Setter Property="BorderThickness" Value="0" />
+              <Setter Property="HorizontalContentAlignment" Value="Left" />
+              <Setter Property="Padding" Value="8,0" />
+              <Setter Property="FrameworkElement.Cursor" Value="Hand" />
+              <Style.Triggers>
+                <Trigger Property="UIElement.IsMouseOver" Value="True">
+                  <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                  <Setter Property="Background" Value="{StaticResource BgHoverBrush}" />
+                </Trigger>
+              </Style.Triggers>
+              <EventSetter Event="Click" Handler="ResultList_ColumnHeader_Click" />
+            </Style>
+          </ResourceDictionary>
+        </FrameworkElement.Resources>
+        <ItemsControl.ItemContainerStyle>
+          <Style TargetType="{x:Type ListViewItem}">
+            <Setter Property="Background" Value="#00FFFFFF" />
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="Template">
+              <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListViewItem}">
+                  <Border Name="b" Background="{TemplateBinding Control.Background}" CornerRadius="4" Padding="{TemplateBinding Control.Padding}">
+                    <GridViewRowPresenter VerticalAlignment="Center" />
+                  </Border>
+                  <ControlTemplate.Triggers>
+                    <Trigger Property="UIElement.IsMouseOver" Value="True">
+                      <Setter TargetName="b" Value="{StaticResource BgHoverBrush}" Property="Border.Background" />
+                    </Trigger>
+                    <Trigger Property="ListBoxItem.IsSelected" Value="True">
+                      <Setter TargetName="b" Property="Border.Background" Value="#FF1A3A5C" />
+                    </Trigger>
+                  </ControlTemplate.Triggers>
+                </ControlTemplate>
+              </Setter.Value>
+            </Setter>
+          </Style>
+        </ItemsControl.ItemContainerStyle>
+        <FrameworkElement.ContextMenu>
+          <ContextMenu>
+            <MenuItem Header="打开" Click="MenuOpen_Click" />
+            <MenuItem Header="打开所在文件夹" Click="MenuOpenFolder_Click" />
+            <MenuItem Header="复制" Click="MenuCopyFile_Click" />
+            <MenuItem Header="复制完整路径" Click="MenuCopyPath_Click" />
+            <Separator />
+            <MenuItem Header="删除" Click="MenuDelete_Click" />
+          </ContextMenu>
+        </FrameworkElement.ContextMenu>
+        <ListView.View>
+          <GridView>
+            <GridViewColumn local:GridViewSort.SortKey="FileName" Header="名称" Width="290">
+              <GridViewColumn.CellTemplate>
+                <DataTemplate>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Image Width="16" Height="16" Margin="0,0,6,0" RenderOptions.BitmapScalingMode="NearestNeighbor" VerticalAlignment="Center" Source="{Binding Converter={StaticResource FileIconConverter}}" />
+                    <TextBlock VerticalAlignment="Center" Text="{Binding FileName}" />
+                  </StackPanel>
+                </DataTemplate>
+              </GridViewColumn.CellTemplate>
+            </GridViewColumn>
+            <GridViewColumn local:GridViewSort.SortKey="FullPath" Header="路径" Width="250" DisplayMemberBinding="{Binding FullPath}" />
+            <GridViewColumn local:GridViewSort.SortKey="Size" Header="大小" Width="85" DisplayMemberBinding="{Binding SizeText}" />
+            <GridViewColumn local:GridViewSort.SortKey="Modified" Header="修改时间" Width="115" DisplayMemberBinding="{Binding ModifiedText}" />
+          </GridView>
+        </ListView.View>
+      </ListView>
+      <Border Grid.Row="5" Padding="16,8">
+        <TextBlock Name="StatusText" Foreground="{StaticResource TextMutedBrush}" FontSize="12" Text="输入关键词后回车即可全盘搜索" />
+      </Border>
+    </Grid>
+  </Border>
+</Window>
