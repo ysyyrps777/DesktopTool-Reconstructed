@@ -4252,9 +4252,92 @@ public class ZoneWindow : Window, IComponentConnector, IStyleConnector
 		ContextMenu menu = (sender as ContextMenu) ?? (sender as FrameworkElement)?.ContextMenu;
 		if (menu != null)
 		{
+			EnsureUploadMenuItems(menu);
 			bool canRun = NativeMethods.CanRunAsAdmin(GetIconFromContextMenu(sender)?.ResolvedPath);
 			SetupRunAsAdminMenu(menu, canRun);
 		}
+	}
+
+	private void EnsureUploadMenuItems(ContextMenu menu)
+	{
+		MenuItem? copyPathItem = null;
+		MenuItem? visibilityItem = null;
+		foreach (object item in (IEnumerable)menu.Items)
+		{
+			if (item is MenuItem mi && Equals(mi.Tag, "DesktopTool.CopyRealPath"))
+			{
+				copyPathItem = mi;
+			}
+			else if (item is MenuItem mi2 && Equals(mi2.Tag, "DesktopTool.ToggleUploadVisibility"))
+			{
+				visibilityItem = mi2;
+			}
+		}
+
+		if (copyPathItem == null)
+		{
+			copyPathItem = new MenuItem
+			{
+				Header = "复制真实路径（用于上传）",
+				Tag = "DesktopTool.CopyRealPath"
+			};
+			copyPathItem.Click += ContextMenu_CopyRealPath;
+			menu.Items.Insert(Math.Min(3, menu.Items.Count), copyPathItem);
+		}
+
+		if (visibilityItem == null)
+		{
+			visibilityItem = new MenuItem
+			{
+				Tag = "DesktopTool.ToggleUploadVisibility"
+			};
+			visibilityItem.Click += ContextMenu_ToggleUploadVisibility;
+			menu.Items.Insert(Math.Min(4, menu.Items.Count), visibilityItem);
+		}
+
+		visibilityItem.Header = DesktopIconService.IsTempShowHiddenActive
+			? "恢复隐藏文件显示"
+			: "上传时显示隐藏文件";
+	}
+
+	private void ContextMenu_CopyRealPath(object sender, RoutedEventArgs e)
+	{
+		ZoneIcon? icon = GetIconFromContextMenu(sender);
+		string? path = icon?.ResolvedPath;
+		if (string.IsNullOrWhiteSpace(path))
+		{
+			return;
+		}
+
+		System.Windows.Clipboard.SetText(path);
+		System.Windows.MessageBox.Show(
+			"真实路径已复制：\n\n" + path + "\n\n在浏览器上传窗口按 Ctrl+L，粘贴路径并按回车即可进入。",
+			"路径已复制",
+			MessageBoxButton.OK,
+			MessageBoxImage.Information);
+	}
+
+	private void ContextMenu_ToggleUploadVisibility(object sender, RoutedEventArgs e)
+	{
+		bool show = !DesktopIconService.IsTempShowHiddenActive;
+		bool success = DesktopIconService.SetTemporaryShowHiddenFiles(show);
+		if (!success)
+		{
+			System.Windows.MessageBox.Show(
+				"无法修改 Windows 隐藏文件显示设置。可改用“复制真实路径（用于上传）”。",
+				"设置失败",
+				MessageBoxButton.OK,
+				MessageBoxImage.Warning);
+			return;
+		}
+
+		System.Windows.MessageBox.Show(
+			show
+				? "隐藏文件已临时显示。\n\n请关闭当前浏览器上传窗口并重新打开，随后即可看到收纳的文件夹。用完后可在右键菜单选择“恢复隐藏文件显示”。"
+				: "已恢复隐藏文件显示设置，收纳内容将重新隐藏。",
+			show ? "可以上传了" : "已恢复",
+			MessageBoxButton.OK,
+			MessageBoxImage.Information);
 	}
 
 	private static void SetupRunAsAdminMenu(ContextMenu menu, bool canRun)
