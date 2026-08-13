@@ -74,8 +74,6 @@ public class MainWindow : Window, IComponentConnector, IStyleConnector
 
 	private bool _aboutInitialized;
 
-	private System.Windows.Controls.Button? _zoneUploadVisibilityButton;
-
 	internal System.Windows.Controls.Button BtnZones;
 
 	internal System.Windows.Controls.Button BtnTodos;
@@ -203,7 +201,6 @@ public class MainWindow : Window, IComponentConnector, IStyleConnector
 		try
 		{
 			InitializeComponent();
-			AddZoneUploadVisibilityControl();
 			BackupList.ItemsSource = _backups;
 			base.SourceInitialized += delegate
 			{
@@ -250,7 +247,6 @@ public class MainWindow : Window, IComponentConnector, IStyleConnector
 			try
 			{
 				DesktopIconService.ReconcileTempShowHiddenOnStartup();
-				UpdateZoneUploadVisibilityButton();
 			}
 			catch (Exception)
 			{
@@ -282,106 +278,6 @@ public class MainWindow : Window, IComponentConnector, IStyleConnector
 			LogHelper.Append(Path.Combine(Path.GetTempPath(), "DesktopTool_Crash.log"), $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] MainWindow构造失败: {value}\n");
 			throw;
 		}
-	}
-
-	private void AddZoneUploadVisibilityControl()
-	{
-		if (!(ZonesContent?.Content is StackPanel contentPanel))
-		{
-			return;
-		}
-
-		TextBlock title = new TextBlock
-		{
-			Text = "浏览器上传访问",
-			FontSize = 14.0,
-			FontWeight = FontWeights.SemiBold,
-			Foreground = FindResource("TextPrimaryBrush") as Brush ?? Brushes.White
-		};
-
-		TextBlock description = new TextBlock
-		{
-			Text = "一次显示全部已收纳的文件和文件夹，方便在浏览器上传窗口中直接选择。上传完成后再恢复隐藏。",
-			TextWrapping = TextWrapping.Wrap,
-			FontSize = 11.0,
-			Foreground = FindResource("TextMutedBrush") as Brush ?? Brushes.LightGray,
-			Margin = new Thickness(0.0, 5.0, 0.0, 10.0)
-		};
-
-		_zoneUploadVisibilityButton = new System.Windows.Controls.Button
-		{
-			Height = 38.0,
-			HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
-			Style = TryFindResource("PrimaryButton") as Style
-		};
-		_zoneUploadVisibilityButton.Click += ZoneUploadVisibility_Click;
-
-		StackPanel cardContent = new StackPanel();
-		cardContent.Children.Add(title);
-		cardContent.Children.Add(description);
-		cardContent.Children.Add(_zoneUploadVisibilityButton);
-
-		Border card = new Border
-		{
-			Background = FindResource("BgSecondaryBrush") as Brush ?? new SolidColorBrush(Color.FromRgb(45, 45, 45)),
-			CornerRadius = new CornerRadius(8.0),
-			Padding = new Thickness(14.0),
-			Margin = new Thickness(0.0, 0.0, 0.0, 12.0),
-			Child = cardContent
-		};
-
-		contentPanel.Children.Insert(0, card);
-		UpdateZoneUploadVisibilityButton();
-	}
-
-	private void UpdateZoneUploadVisibilityButton()
-	{
-		if (_zoneUploadVisibilityButton == null)
-		{
-			return;
-		}
-
-		bool showing = DesktopIconService.IsTempShowHiddenActive;
-		_zoneUploadVisibilityButton.Content = showing
-			? "恢复全部收纳文件为隐藏状态"
-			: "上传时显示全部收纳文件和文件夹";
-		_zoneUploadVisibilityButton.Background = showing
-			? new SolidColorBrush(Color.FromRgb(229, 72, 72))
-			: new SolidColorBrush(Color.FromRgb(0, 120, 212));
-	}
-
-	private async void ZoneUploadVisibility_Click(object sender, RoutedEventArgs e)
-	{
-		if (_zoneUploadVisibilityButton == null)
-		{
-			return;
-		}
-
-		bool show = !DesktopIconService.IsTempShowHiddenActive;
-		_zoneUploadVisibilityButton.IsEnabled = false;
-		_zoneUploadVisibilityButton.Content = show ? "正在显示，请稍候…" : "正在恢复，请稍候…";
-		bool success = await Task.Run(() => DesktopIconService.SetTemporaryShowHiddenFiles(show));
-		_zoneUploadVisibilityButton.IsEnabled = true;
-		UpdateZoneUploadVisibilityButton();
-
-		if (ChkTempShowHidden != null)
-		{
-			ChkTempShowHidden.IsChecked = show && success;
-		}
-
-		if (!success)
-		{
-			System.Windows.MessageBox.Show("无法修改 Windows 隐藏文件显示设置。", "操作失败", MessageBoxButton.OK, MessageBoxImage.Warning);
-			return;
-		}
-
-		System.Windows.MessageBox.Show(
-			show
-				? "所有属性隐藏模式下收纳的文件和文件夹已临时显示。\n\n请关闭当前浏览器上传窗口并重新打开，即可直接浏览桌面选择。上传完成后回到这里恢复隐藏。"
-				: "已恢复全部收纳文件的隐藏显示状态。",
-			show ? "可以上传了" : "已恢复隐藏",
-			MessageBoxButton.OK,
-			MessageBoxImage.Information);
 	}
 
 	private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -958,93 +854,40 @@ public class MainWindow : Window, IComponentConnector, IStyleConnector
 	private async void ChkTempShowHidden_Click(object sender, RoutedEventArgs e)
 	{
 		bool desired = ChkTempShowHidden.IsChecked == true;
-		if (desired && !ConfirmDialog.Show(this, "显示隐藏文件", "此功能用于临时查看桌面隐藏文件，查看后为了确保功能体验，请记得手动关闭。\n\n确定要显示桌面隐藏文件吗？", "显示", "取消"))
-		{
-			ChkTempShowHidden.IsChecked = false;
-			return;
-		}
 		ChkTempShowHidden.IsEnabled = false;
-		Window loadingWindow = new Window
-		{
-			Title = (desired ? "显示隐藏文件 — 请稍候" : "恢复显示设置 — 请稍候"),
-			Width = 380.0,
-			Height = 140.0,
-			WindowStartupLocation = WindowStartupLocation.CenterOwner,
-			Owner = this,
-			WindowStyle = WindowStyle.None,
-			AllowsTransparency = true,
-			Background = Brushes.Transparent,
-			ResizeMode = ResizeMode.NoResize,
-			ShowInTaskbar = false,
-			Topmost = true,
-			Content = new Border
-			{
-				Background = new SolidColorBrush(Color.FromRgb(30, 30, 46)),
-				CornerRadius = new CornerRadius(8.0),
-				BorderBrush = new SolidColorBrush(Color.FromRgb(68, 68, 102)),
-				BorderThickness = new Thickness(1.0),
-				Padding = new Thickness(20.0),
-				Child = new StackPanel
-				{
-					VerticalAlignment = VerticalAlignment.Center,
-					Children = 
-					{
-						(UIElement)new TextBlock
-						{
-							Text = (desired ? "正在显示桌面隐藏文件，请稍候..." : "正在恢复桌面文件显示设置，请稍候..."),
-							HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-							FontSize = 13.0,
-							Margin = new Thickness(0.0, 0.0, 0.0, 16.0),
-							Foreground = new SolidColorBrush(Color.FromRgb(224, 224, 240))
-						},
-						(UIElement)new System.Windows.Controls.ProgressBar
-						{
-							IsIndeterminate = true,
-							Height = 20.0,
-							Width = 300.0,
-							HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-							Foreground = new SolidColorBrush(Color.FromRgb(74, 144, 217)),
-							Background = new SolidColorBrush(Color.FromRgb(42, 42, 58))
-						}
-					}
-				}
-			}
-		};
-		bool success = false;
-		DateTime startTime = DateTime.Now;
-		loadingWindow.Show();
 		try
 		{
-			success = await Task.Run(() => DesktopIconService.SetTemporaryShowHiddenFiles(desired));
-			double elapsed = (DateTime.Now - startTime).TotalMilliseconds;
-			if (elapsed < 3000.0)
+			bool success = await Task.Run(() => DesktopIconService.SetTemporaryShowHiddenFiles(desired));
+			ChkTempShowHidden.IsChecked = success
+				? DesktopIconService.IsExplorerShowingHiddenFiles()
+				: !desired;
+
+			if (!success)
 			{
-				await Task.Delay((int)(3000.0 - elapsed));
+				System.Windows.MessageBox.Show(
+					"无法修改 Windows 隐藏文件显示设置，请稍后重试。",
+					"操作失败",
+					MessageBoxButton.OK,
+					MessageBoxImage.Warning);
 			}
 		}
 		finally
 		{
-			loadingWindow.Close();
 			ChkTempShowHidden.IsEnabled = true;
 		}
-		if (!success)
+	}
+
+	public void SetTemporaryHiddenVisibilityUiState(bool showing)
+	{
+		if (!base.Dispatcher.CheckAccess())
 		{
-			ChkTempShowHidden.IsChecked = !desired;
-			UpdateZoneUploadVisibilityButton();
-			ConfirmDialog.Show(this, "操作失败", desired ? "无法显示桌面隐藏文件，请稍后重试。" : "无法恢复桌面文件显示设置，请稍后重试。", "确定", "关闭");
+			base.Dispatcher.BeginInvoke(new Action(() => SetTemporaryHiddenVisibilityUiState(showing)));
 			return;
 		}
-		UpdateZoneUploadVisibilityButton();
-		try
+
+		if (ChkTempShowHidden != null)
 		{
-			await Task.Run(delegate
-			{
-				DesktopIconService.ForceDesktopViewRefresh();
-			});
-		}
-		catch (Exception ex)
-		{
-			DebugLog("桌面刷新失败", ex);
+			ChkTempShowHidden.IsChecked = showing;
 		}
 	}
 

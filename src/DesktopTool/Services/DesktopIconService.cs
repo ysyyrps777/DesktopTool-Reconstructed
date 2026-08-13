@@ -96,7 +96,9 @@ public class DesktopIconService
 
 	private static int _tempOriginalShowSuperHidden = 0;
 
-	private static bool _tempShowActive;
+	private static volatile bool _tempShowActive;
+
+	private static readonly object _tempShowLock = new object();
 
 	private const string TempShowStateKey = "Software\\DesktopTool\\TempShowHidden";
 
@@ -3641,16 +3643,17 @@ public class DesktopIconService
 		}
 	}
 
-	private static void NotifyExplorerSettingsChanged()
+	private static void NotifyExplorerSettingsChanged(uint timeoutMs = 3000u)
 	{
 		nint HWND_BROADCAST = new IntPtr(65535);
 		nint result;
+		uint shellTimeoutMs = Math.Min(timeoutMs, 1000u);
 		try
 		{
 			nint policyPtr = Marshal.StringToHGlobalUni("Policy");
 			try
 			{
-				NativeMethods.SendMessageTimeout(HWND_BROADCAST, 26u, IntPtr.Zero, policyPtr, 2u, 3000u, out result);
+				NativeMethods.SendMessageTimeout(HWND_BROADCAST, 26u, IntPtr.Zero, policyPtr, 2u, timeoutMs, out result);
 			}
 			finally
 			{
@@ -3677,12 +3680,12 @@ public class DesktopIconService
 			{
 				return;
 			}
-			NativeMethods.SendMessageTimeout(progman, 26u, IntPtr.Zero, IntPtr.Zero, 2u, 1000u, out result);
+			NativeMethods.SendMessageTimeout(progman, 26u, IntPtr.Zero, IntPtr.Zero, 2u, shellTimeoutMs, out result);
 			NativeMethods.EnumWindows(delegate(nint hWnd, nint lParam)
 			{
 				if (NativeMethods.FindWindowEx(hWnd, IntPtr.Zero, "SHELLDLL_DefView", null) != IntPtr.Zero)
 				{
-					NativeMethods.SendMessageTimeout(hWnd, 26u, IntPtr.Zero, IntPtr.Zero, 2u, 1000u, out result);
+					NativeMethods.SendMessageTimeout(hWnd, 26u, IntPtr.Zero, IntPtr.Zero, 2u, shellTimeoutMs, out result);
 					return false;
 				}
 				return true;
@@ -3770,40 +3773,19 @@ public class DesktopIconService
 		LoadTempShowHiddenState();
 		if (_tempShowActive)
 		{
-			SetExplorerHidden(show: true);
-			SetExplorerSuperHidden(hide: false);
-			try
-			{
-				SetAllObjectsViaShell(show: true);
-				SetSuperHiddenViaShell(hide: false);
-			}
-			catch
-			{
-			}
-			try
-			{
-				ForceDesktopViewRefresh();
-			}
-			catch
-			{
-			}
+			// A previous run ended before temporary visibility could be restored.
+			// Restore the exact settings captured by that run instead of leaving
+			// hidden items exposed for the whole next session.
+			RestoreTempShowHidden();
+			_tempShowActive = false;
+			SaveTempShowHiddenState();
+			NotifyExplorerSettingsChanged(300u);
 			return true;
 		}
-		if (!IsExplorerShowingHiddenFiles())
-		{
-			return false;
-		}
-		RestoreTempShowHidden();
-		_tempShowActive = false;
-		SaveTempShowHiddenState();
-		try
-		{
-			ForceDesktopViewRefresh();
-		}
-		catch
-		{
-		}
-		return true;
+
+		// Do not overwrite a visibility preference the user configured directly
+		// in Explorer when DesktopTool does not own a temporary change.
+		return false;
 	}
 
 	public static void RestoreTempShowHiddenIfActiveOnExit()
@@ -3825,51 +3807,58 @@ public class DesktopIconService
 
 	public static bool SetTemporaryShowHiddenFiles(bool show)
 	{
-		try
+		lock (_tempShowLock)
 		{
-			if (show)
+			try
 			{
-				if (!_tempShowActive)
+				if (show)
 				{
-					_tempOriginalHidden = ReadExplorerHidden();
-					_tempOriginalShowSuperHidden = ReadShowSuperHidden();
-					_tempShowActive = true;
-					SaveTempShowHiddenState();
+					if (!_tempShowActive)
+					{
+						_tempOriginalHidden = ReadExplorerHidden();
+						_tempOriginalShowSuperHidden = ReadShowSuperHidden();
+						_tempShowActive = true;
+						SaveTempShowHiddenState();
+					}
+					bool num = SetExplorerHidden(show: true);
+					bool regSuperOk = SetExplorerSuperHidden(hide: false);
+					if (!num || !regSuperOk)
+					{
+						RestoreTempShowHidden();
+						_tempShowActive = false;
+						SaveTempShowHiddenState();
+						return false;
+					}
+					SetAllObjectsViaShell(show: true);
+					SetSuperHiddenViaShell(hide: false);
+					Thread.Sleep(200);
+					NotifyExplorerSettingsChanged(300u);
+					return true;
 				}
-				bool num = SetExplorerHidden(show: true);
-				bool regSuperOk = SetExplorerSuperHidden(hide: false);
-				if (!num || !regSuperOk)
-				{
-					RestoreTempShowHidden();
-					return false;
-				}
-				SetAllObjectsViaShell(show: true);
-				SetSuperHiddenViaShell(hide: false);
+				RestoreTempShowHidden();
+				_tempShowActive = false;
+				SaveTempShowHiddenState();
 				Thread.Sleep(200);
-				NotifyExplorerSettingsChanged();
+				NotifyExplorerSettingsChanged(300u);
 				return true;
 			}
-			RestoreTempShowHidden();
-			_tempShowActive = false;
-			SaveTempShowHiddenState();
-			Thread.Sleep(200);
-			NotifyExplorerSettingsChanged();
-			return true;
-		}
-		catch (Exception)
-		{
-			return false;
+			catch (Exception)
+			{
+				return false;
+			}
 		}
 	}
 
 	private static void RestoreTempShowHidden()
 	{
-		SetExplorerHidden(show: false);
-		SetExplorerSuperHidden(hide: true);
+		bool showHidden = _tempOriginalHidden == 1;
+		bool hideSuperHidden = _tempOriginalShowSuperHidden == 0;
+		SetExplorerHidden(showHidden);
+		SetExplorerSuperHidden(hideSuperHidden);
 		try
 		{
-			SetAllObjectsViaShell(show: false);
-			SetSuperHiddenViaShell(hide: true);
+			SetAllObjectsViaShell(showHidden);
+			SetSuperHiddenViaShell(hideSuperHidden);
 		}
 		catch (Exception)
 		{

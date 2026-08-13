@@ -42,6 +42,8 @@ public class App : System.Windows.Application
 
 	private TodoSchedulerService? _todoScheduler;
 
+	private BrowserFileDialogMonitor? _browserFileDialogMonitor;
+
 	private HwndSource? _ipcWindow;
 
 	public static volatile bool IsInternalDrag;
@@ -492,6 +494,19 @@ public class App : System.Windows.Application
 			}
 			catch
 			{
+			}
+			try
+			{
+				_browserFileDialogMonitor = new BrowserFileDialogMonitor();
+				_browserFileDialogMonitor.VisibilityChanged += delegate(bool _)
+				{
+					_mainWindow?.SetTemporaryHiddenVisibilityUiState(DesktopIconService.IsExplorerShowingHiddenFiles());
+				};
+				_browserFileDialogMonitor.Start();
+			}
+			catch (Exception ex)
+			{
+				EmergencyLog("BrowserFileDialogMonitor start failed: " + ex.Message);
 			}
 			try
 			{
@@ -1055,6 +1070,15 @@ public class App : System.Windows.Application
 	protected override void OnExit(ExitEventArgs e)
 	{
 		DesktopEmbedService.IsAppExiting = true;
+		try
+		{
+			_browserFileDialogMonitor?.Dispose();
+			_browserFileDialogMonitor = null;
+		}
+		catch (Exception ex)
+		{
+			EmergencyLog("BrowserFileDialogMonitor dispose failed: " + ex.Message);
+		}
 		if (_isSystemShuttingDown)
 		{
 			EmergencyLog("OnExit: 系统正在关机/重启，跳过图标恢复");
