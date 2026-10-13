@@ -857,7 +857,7 @@ public class MainWindow : Window, IComponentConnector, IStyleConnector
 		ChkTempShowHidden.IsEnabled = false;
 		try
 		{
-			bool success = await Task.Run(() => DesktopIconService.SetTemporaryShowHiddenFiles(desired));
+			bool success = await Task.Run(() => DesktopIconService.SetHiddenFilesVisible(desired));
 			ChkTempShowHidden.IsChecked = success
 				? DesktopIconService.IsExplorerShowingHiddenFiles()
 				: !desired;

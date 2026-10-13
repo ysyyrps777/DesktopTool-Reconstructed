@@ -3835,10 +3835,42 @@ public class DesktopIconService
 					NotifyExplorerSettingsChanged(300u);
 					return true;
 				}
+				if (!_tempShowActive)
+				{
+					return true;
+				}
 				RestoreTempShowHidden();
 				_tempShowActive = false;
 				SaveTempShowHiddenState();
 				Thread.Sleep(200);
+				NotifyExplorerSettingsChanged(300u);
+				return true;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
+	}
+
+	public static bool SetHiddenFilesVisible(bool show)
+	{
+		lock (_tempShowLock)
+		{
+			try
+			{
+				bool hiddenOk = SetExplorerHidden(show);
+				bool superHiddenOk = SetExplorerSuperHidden(hide: !show);
+				if (!hiddenOk || !superHiddenOk)
+				{
+					return false;
+				}
+
+				SetAllObjectsViaShell(show);
+				SetSuperHiddenViaShell(hide: !show);
+				_tempShowActive = false;
+				SaveTempShowHiddenState();
+				Thread.Sleep(100);
 				NotifyExplorerSettingsChanged(300u);
 				return true;
 			}

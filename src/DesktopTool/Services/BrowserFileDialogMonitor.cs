@@ -33,6 +33,7 @@ public sealed class BrowserFileDialogMonitor : IDisposable
 	private readonly object _stateLock = new();
 	private Timer? _timer;
 	private bool _ownsTemporaryVisibility;
+	private bool _suppressUntilDialogsClose;
 	private int _noDialogChecks;
 	private int _checking;
 	private volatile bool _disposed;
@@ -65,7 +66,15 @@ public sealed class BrowserFileDialogMonitor : IDisposable
 			if (dialogOpen)
 			{
 				_noDialogChecks = 0;
-				if (!_ownsTemporaryVisibility && !DesktopIconService.IsTempShowHiddenActive && DesktopIconService.SetTemporaryShowHiddenFiles(show: true))
+				if (_ownsTemporaryVisibility && !DesktopIconService.IsTempShowHiddenActive)
+				{
+					// The user changed the setting manually while the dialog was open.
+					// Respect that choice and do not immediately turn it back on.
+					_ownsTemporaryVisibility = false;
+					_suppressUntilDialogsClose = true;
+				}
+
+				if (!_suppressUntilDialogsClose && !_ownsTemporaryVisibility && !DesktopIconService.IsTempShowHiddenActive && DesktopIconService.SetTemporaryShowHiddenFiles(show: true))
 				{
 					_ownsTemporaryVisibility = true;
 					RefreshFileDialogs(dialogWindows);
@@ -73,6 +82,8 @@ public sealed class BrowserFileDialogMonitor : IDisposable
 				}
 				return;
 			}
+
+			_suppressUntilDialogsClose = false;
 
 			if (!_ownsTemporaryVisibility)
 			{
