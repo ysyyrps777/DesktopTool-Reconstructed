@@ -673,7 +673,7 @@ public class DesktopIconService
 		return (Success: false, ActualPath: null, FailReason: "无效的隐藏方式");
 	}
 
-	public static nint GetDesktopListViewHandle()
+	private static nint GetDesktopDefViewHandle()
 	{
 		nint progman = NativeMethods.FindWindow("Progman", null);
 		if (progman == IntPtr.Zero)
@@ -683,7 +683,7 @@ public class DesktopIconService
 		nint defView = NativeMethods.FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
 		if (defView != IntPtr.Zero)
 		{
-			return NativeMethods.FindWindowEx(defView, IntPtr.Zero, "SysListView32", "FolderView");
+			return defView;
 		}
 		nint worker = IntPtr.Zero;
 		do
@@ -694,12 +694,20 @@ public class DesktopIconService
 				defView = NativeMethods.FindWindowEx(worker, IntPtr.Zero, "SHELLDLL_DefView", null);
 				if (defView != IntPtr.Zero)
 				{
-					return NativeMethods.FindWindowEx(defView, IntPtr.Zero, "SysListView32", "FolderView");
+					return defView;
 				}
 			}
 		}
 		while (worker != IntPtr.Zero);
 		return IntPtr.Zero;
+	}
+
+	public static nint GetDesktopListViewHandle()
+	{
+		nint defView = GetDesktopDefViewHandle();
+		return defView == IntPtr.Zero
+			? IntPtr.Zero
+			: NativeMethods.FindWindowEx(defView, IntPtr.Zero, "SysListView32", "FolderView");
 	}
 
 	public static int GetIconCount()
@@ -1988,29 +1996,48 @@ public class DesktopIconService
 		}
 	}
 
-	public static void ForceDesktopViewRefresh()
+	public static void ForceDesktopViewRefresh(bool reapplyHiddenFilter = false)
 	{
 		try
 		{
-			if (Application.Current == null)
-			{
-				return;
-			}
-			Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Background, (Action)delegate
+			void RefreshDesktopListView()
 			{
 				try
 				{
+					if (reapplyHiddenFilter)
+					{
+						// Explorer's desktop view can retain a stale "show hidden" filter
+						// after the persisted settings switch back to hidden. DefView command
+						// 41504 reloads the current filter instead of merely repainting icons.
+						nint desktopDefViewHandle = GetDesktopDefViewHandle();
+						if (desktopDefViewHandle != IntPtr.Zero)
+						{
+							NativeMethods.SendMessage(desktopDefViewHandle, 273u, new IntPtr(41504), IntPtr.Zero);
+						}
+					}
 					nint desktopListViewHandle = GetDesktopListViewHandle();
 					if (desktopListViewHandle != IntPtr.Zero)
 					{
 						NativeMethods.PostMessage(desktopListViewHandle, 256u, new IntPtr(116), IntPtr.Zero);
 						NativeMethods.PostMessage(desktopListViewHandle, 257u, new IntPtr(116), new IntPtr(3221225472L));
+						NativeMethods.PostMessage(desktopListViewHandle, 4117u, IntPtr.Zero, new IntPtr(-1));
+						NativeMethods.InvalidateRect(desktopListViewHandle, IntPtr.Zero, bErase: true);
 					}
 				}
 				catch
 				{
 				}
-			});
+			}
+
+			Dispatcher? dispatcher = Application.Current?.Dispatcher;
+			if (dispatcher != null && !dispatcher.CheckAccess())
+			{
+				dispatcher.BeginInvoke(DispatcherPriority.Background, (Action)RefreshDesktopListView);
+			}
+			else
+			{
+				RefreshDesktopListView();
+			}
 		}
 		catch
 		{
@@ -3473,9 +3500,10 @@ public class DesktopIconService
 		try
 		{
 			LogExplorerDiag($"[ShellAPI] 开始设置 hide={hide} (目标 fShowSuperHidden={!hide})");
+			const uint superHiddenBit = 1u << NativeMethods.SHELLSTATE_BIT_SUPERHIDDEN;
 			NativeMethods.SHELLSTATE ss = default(NativeMethods.SHELLSTATE);
-			NativeMethods.SHGetSetSettings(ref ss, 262144u, bSet: false);
-			bool fShowSuperHidden = (ss.dwBits1 & 0x8000) != 0;
+			NativeMethods.SHGetSetSettings(ref ss, uint.MaxValue, bSet: false);
+			bool fShowSuperHidden = (ss.dwBits1 & superHiddenBit) != 0;
 			LogExplorerDiag($"[ShellAPI] 当前 Shell State dwBits1=0x{ss.dwBits1:X8} fShowSuperHidden(bit15)={fShowSuperHidden}");
 			bool targetBit = !hide;
 			if (fShowSuperHidden == targetBit)
@@ -3485,23 +3513,23 @@ public class DesktopIconService
 			}
 			if (targetBit)
 			{
-				ss.dwBits1 |= 32768u;
+				ss.dwBits1 |= superHiddenBit;
 			}
 			else
 			{
-				ss.dwBits1 &= 4294934527u;
+				ss.dwBits1 &= ~superHiddenBit;
 			}
 			LogExplorerDiag($"[ShellAPI] 写回 dwBits1=0x{ss.dwBits1:X8} (bit15={targetBit})");
-			NativeMethods.SHGetSetSettings(ref ss, 262144u, bSet: true);
+			NativeMethods.SHGetSetSettings(ref ss, NativeMethods.SSF_SHOWSUPERHIDDEN, bSet: true);
 			NativeMethods.SHELLSTATE ssVerify = default(NativeMethods.SHELLSTATE);
-			NativeMethods.SHGetSetSettings(ref ssVerify, 262144u, bSet: false);
-			bool isSet = (ssVerify.dwBits1 & 0x8000) != 0;
-			if (isSet == targetBit)
+			NativeMethods.SHGetSetSettings(ref ssVerify, uint.MaxValue, bSet: false);
+			bool superHiddenIsSet = (ssVerify.dwBits1 & superHiddenBit) != 0;
+			if (superHiddenIsSet == targetBit)
 			{
-				LogExplorerDiag($"[ShellAPI] ✅ 验证通过 fShowSuperHidden={isSet}");
+				LogExplorerDiag($"[ShellAPI] ✅ 验证通过 fShowSuperHidden={superHiddenIsSet}");
 				return true;
 			}
-			LogExplorerDiag($"[ShellAPI] ❌ 验证失败: 期望={targetBit}, 实际={isSet}, dwBits1=0x{ssVerify.dwBits1:X8}");
+			LogExplorerDiag($"[ShellAPI] ❌ 验证失败: 期望={targetBit}, fShowSuperHidden={superHiddenIsSet}, dwBits1=0x{ssVerify.dwBits1:X8}");
 			return false;
 		}
 		catch (Exception ex)
@@ -3565,8 +3593,8 @@ public class DesktopIconService
 		try
 		{
 			NativeMethods.SHELLSTATE ssFinal = default(NativeMethods.SHELLSTATE);
-			NativeMethods.SHGetSetSettings(ref ssFinal, 262144u, bSet: false);
-			bool finalShellState = (ssFinal.dwBits1 & 0x8000) != 0;
+			NativeMethods.SHGetSetSettings(ref ssFinal, uint.MaxValue, bSet: false);
+			bool finalShellState = (ssFinal.dwBits1 & (1u << NativeMethods.SHELLSTATE_BIT_SUPERHIDDEN)) != 0;
 			int finalRegValue = ReadShowSuperHidden();
 			LogExplorerDiag($"[Ensure] 最终状态: Shell fShowSuperHidden={finalShellState} (1=显示), Registry ShowSuperHidden={finalRegValue} (1=显示)");
 			if (!finalShellState && finalRegValue == 0)
@@ -3648,27 +3676,30 @@ public class DesktopIconService
 		nint HWND_BROADCAST = new IntPtr(65535);
 		nint result;
 		uint shellTimeoutMs = Math.Min(timeoutMs, 1000u);
-		try
+		foreach (string settingArea in new[] { "ShellState", "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" })
 		{
-			nint policyPtr = Marshal.StringToHGlobalUni("Policy");
 			try
 			{
-				NativeMethods.SendMessageTimeout(HWND_BROADCAST, 26u, IntPtr.Zero, policyPtr, 2u, timeoutMs, out result);
+				nint settingPtr = Marshal.StringToHGlobalUni(settingArea);
+				try
+				{
+					NativeMethods.SendMessageTimeout(HWND_BROADCAST, 26u, IntPtr.Zero, settingPtr, 2u, timeoutMs, out result);
+				}
+				finally
+				{
+					Marshal.FreeHGlobal(settingPtr);
+				}
 			}
-			finally
+			catch (Exception)
 			{
-				Marshal.FreeHGlobal(policyPtr);
 			}
-		}
-		catch (Exception)
-		{
 		}
 		try
 		{
-			if (!((DateTime.UtcNow - _serviceStartTime).TotalSeconds < 30.0))
-			{
-				NativeMethods.SHChangeNotify(134217728u, 4096u, IntPtr.Zero, IntPtr.Zero);
-			}
+			// Visibility changes must be flushed even during startup. The old
+			// 30-second guard left Explorer's desktop view showing stale hidden
+			// items whenever the setting was restored shortly after launch.
+			NativeMethods.SHChangeNotify(NativeMethods.SHCNE_ASSOCCHANGED, NativeMethods.SHCNF_FLUSH, IntPtr.Zero, IntPtr.Zero);
 		}
 		catch (Exception)
 		{
@@ -3780,6 +3811,7 @@ public class DesktopIconService
 			_tempShowActive = false;
 			SaveTempShowHiddenState();
 			NotifyExplorerSettingsChanged(300u);
+			ForceDesktopViewRefresh(reapplyHiddenFilter: ReadExplorerHidden() != 1);
 			return true;
 		}
 
@@ -3799,6 +3831,8 @@ public class DesktopIconService
 			RestoreTempShowHidden();
 			_tempShowActive = false;
 			SaveTempShowHiddenState();
+			NotifyExplorerSettingsChanged(300u);
+			ForceDesktopViewRefresh(reapplyHiddenFilter: ReadExplorerHidden() != 1);
 		}
 		catch (Exception)
 		{
@@ -3820,6 +3854,7 @@ public class DesktopIconService
 						_tempShowActive = true;
 						SaveTempShowHiddenState();
 					}
+					bool shellOk = SetHiddenVisibilityViaShell(showHidden: true, showSuperHidden: true);
 					bool num = SetExplorerHidden(show: true);
 					bool regSuperOk = SetExplorerSuperHidden(hide: false);
 					if (!num || !regSuperOk)
@@ -3829,10 +3864,14 @@ public class DesktopIconService
 						SaveTempShowHiddenState();
 						return false;
 					}
-					SetAllObjectsViaShell(show: true);
-					SetSuperHiddenViaShell(hide: false);
+					if (!shellOk)
+					{
+						SetAllObjectsViaShell(show: true);
+						SetSuperHiddenViaShell(hide: false);
+					}
 					Thread.Sleep(200);
 					NotifyExplorerSettingsChanged(300u);
+					ForceDesktopViewRefresh();
 					return true;
 				}
 				if (!_tempShowActive)
@@ -3844,6 +3883,7 @@ public class DesktopIconService
 				SaveTempShowHiddenState();
 				Thread.Sleep(200);
 				NotifyExplorerSettingsChanged(300u);
+				ForceDesktopViewRefresh(reapplyHiddenFilter: ReadExplorerHidden() != 1);
 				return true;
 			}
 			catch (Exception)
@@ -3853,12 +3893,64 @@ public class DesktopIconService
 		}
 	}
 
+	private static bool SetHiddenVisibilityViaShell(bool showHidden, bool showSuperHidden)
+	{
+		try
+		{
+			const uint allObjectsBit = 1u << NativeMethods.SHELLSTATE_BIT_ALLOBJECTS;
+			const uint sysFilesBit = 1u << NativeMethods.SHELLSTATE_BIT_SYSFILES;
+			const uint superHiddenBit = 1u << NativeMethods.SHELLSTATE_BIT_SUPERHIDDEN;
+			const uint stateMask = NativeMethods.SSF_SHOWALLOBJECTS
+				| NativeMethods.SSF_SHOWSYSFILES
+				| NativeMethods.SSF_SHOWSUPERHIDDEN;
+			NativeMethods.SHELLSTATE state = default(NativeMethods.SHELLSTATE);
+			NativeMethods.SHGetSetSettings(ref state, uint.MaxValue, bSet: false);
+			if (showHidden)
+			{
+				state.dwBits1 |= allObjectsBit;
+			}
+			else
+			{
+				state.dwBits1 &= ~allObjectsBit;
+			}
+			// Explorer encodes the two Hidden radio options as complementary
+			// fShowAllObjects/fShowSysFiles bits: show = 1/0, hide = 0/1.
+			if (showHidden)
+			{
+				state.dwBits1 &= ~sysFilesBit;
+			}
+			else
+			{
+				state.dwBits1 |= sysFilesBit;
+			}
+			if (showSuperHidden)
+			{
+				state.dwBits1 |= superHiddenBit;
+			}
+			else
+			{
+				state.dwBits1 &= ~superHiddenBit;
+			}
+
+			// Call the Shell API before the registry fallback. It only notifies
+			// live folder views when it observes a real persisted-state change.
+			NativeMethods.SHGetSetSettings(ref state, stateMask, bSet: true);
+			return ReadExplorerHidden() == (showHidden ? 1 : 2)
+				&& ReadShowSuperHidden() == (showSuperHidden ? 1 : 0);
+		}
+		catch (Exception)
+		{
+			return false;
+		}
+	}
+
 	public static bool SetHiddenFilesVisible(bool show)
 	{
 		lock (_tempShowLock)
 		{
 			try
 			{
+				bool shellOk = SetHiddenVisibilityViaShell(show, show);
 				bool hiddenOk = SetExplorerHidden(show);
 				bool superHiddenOk = SetExplorerSuperHidden(hide: !show);
 				if (!hiddenOk || !superHiddenOk)
@@ -3866,12 +3958,16 @@ public class DesktopIconService
 					return false;
 				}
 
-				SetAllObjectsViaShell(show);
-				SetSuperHiddenViaShell(hide: !show);
+				if (!shellOk)
+				{
+					SetAllObjectsViaShell(show);
+					SetSuperHiddenViaShell(hide: !show);
+				}
 				_tempShowActive = false;
 				SaveTempShowHiddenState();
 				Thread.Sleep(100);
 				NotifyExplorerSettingsChanged(300u);
+				ForceDesktopViewRefresh(reapplyHiddenFilter: !show);
 				return true;
 			}
 			catch (Exception)
@@ -3885,12 +3981,16 @@ public class DesktopIconService
 	{
 		bool showHidden = _tempOriginalHidden == 1;
 		bool hideSuperHidden = _tempOriginalShowSuperHidden == 0;
+		bool shellOk = SetHiddenVisibilityViaShell(showHidden, !hideSuperHidden);
 		SetExplorerHidden(showHidden);
 		SetExplorerSuperHidden(hideSuperHidden);
 		try
 		{
-			SetAllObjectsViaShell(showHidden);
-			SetSuperHiddenViaShell(hideSuperHidden);
+			if (!shellOk)
+			{
+				SetAllObjectsViaShell(showHidden);
+				SetSuperHiddenViaShell(hideSuperHidden);
+			}
 		}
 		catch (Exception)
 		{

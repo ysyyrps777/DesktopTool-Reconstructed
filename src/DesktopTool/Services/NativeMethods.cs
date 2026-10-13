@@ -631,9 +631,13 @@ internal static class NativeMethods
 
 	public const uint SSF_SHOWALLOBJECTS = 1u;
 
+	public const uint SSF_SHOWSYSFILES = 32u;
+
 	public const uint SSF_SHOWSUPERHIDDEN = 262144u;
 
 	public const int SHELLSTATE_BIT_ALLOBJECTS = 0;
+
+	public const int SHELLSTATE_BIT_SYSFILES = 3;
 
 	public const int SHELLSTATE_BIT_SUPERHIDDEN = 15;
 
